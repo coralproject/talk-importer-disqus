@@ -2,8 +2,8 @@
 
 class Source {
     constructor(){
-
+        console.log('source');
     }
-
-    connect(){}
 }
+
+module.exports = Source;

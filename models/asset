@@ -1,7 +1,20 @@
 #!/usr/bin/env node
 
-class Asset {
-    constructor(data) {
+class AssetModel {
+    constructor(data, source) {
         this.data = data;
+        // this.url = data.url
+        // this.title = data.title;
+        // this.closedAt = data.closedAt;
+        // this.description = data.description;
+        // this.author = data.author;
+        // this.publication_date = data.publication_date;
+        // this.metadata = data.metadata;
+    }
+
+    get(){
+        return this.data;
     }
 }
+
+module.exports = AssetModel;

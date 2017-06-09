@@ -4,46 +4,48 @@ const commentModel = require('../models/comment');
 const userModel = require('../models/user');
 const assetModel = require('../models/asset');
 
+
+const Disqus = require('./disqus');
+
 class Sponge {
 
   constructor(strategy) {
     this.strategy = strategy;
+    this.disqus = new Disqus(strategy.service);
   }
 
 
-  translate(post, model) {
+  async translate(post, model) {
 
       let c = {};
       let fields = this.strategy.map.entities[model].fields;
 
+      console.log('WHAT ARE THE FIELDS!!!? ', fields);
       for (let field in fields) {
-        this.transform_field(post, fields[field])
-        .then((value) => {
-          c[field] = value;
-        })
-        .catch((error) => {
-          console.log('Error when transforming field: ', field, error);
-        });
+        c[field] = await this.transform_field(post, fields[field], this.strategy.name);
+        console.log('translate ', field, c[field]);
       }
-
+      let comment = new commentModel(c);
+  
       // It helps to normalize and clean the comment object.
-      return new commentModel(c);
+      return comment.get();
   }
 
-  transform_field(old_comment, field) {
-    switch(field['relation']) {
+  async transform_field(old_comment, field, source_name) {
+    switch(field.relation) {
     case 'Identity':
       return new Promise((resolve, reject) => {
         let value = this.get_value(old_comment, field);
         if (value == undefined) {
-          return reject('Error on getting identity value.');
+          console.log('undefined');
+          reject('Error on getting identity value.');
         }
-        return resolve(value);
+        resolve(value);
       });
 
     case 'FindOrCreateUser':
       return new Promise((resolve, reject) => {
-        let user = new userModel(this.get_value(old_comment, field));
+        let user = this.create_user(old_comment[field.source], field.map.fields, source_name);
         if (user == undefined) {
           return reject('Error on getting user field.');
         }
@@ -51,8 +53,11 @@ class Sponge {
       });
 
     case 'FindOrCreateAsset':
+    
+      let old_asset = await this.disqus.get_asset(old_comment[field.source]);
+      let asset = this.create_asset(old_asset.response, field.map.fields, source_name);
       return new Promise((resolve, reject) => {
-        let asset = new assetModel(this.get_value(old_comment, field));
+        // get the asset information for old_comment[field.source]
         if (asset == undefined) {
           return reject('Error on getting asset field.');
         }
@@ -64,34 +69,28 @@ class Sponge {
         return resolve(field['status'][this.get_value(old_comment, field)]);
       });
 
-    // case 'Parent':  
-    // it needs to find a way to look for an existing parent
-    //   return new Promise((resolve, reject) => {
-    //     let comment = new commentModel(this.get_value(old_comment, field));
-    //     if (comment == undefined) {
-    //       return reject('Error on getting comment field.');
-    //     }
-    //     return resolve(comment);
-    //   });
+    case 'Parent':  
+      return new Promise((resolve, reject) => {
+        let comment = new commentModel(this.get_value(old_comment, field));
+        if (comment == undefined) {
+          return reject('Error on getting comment field.');
+        }
+        return resolve(comment);
+      });
 
     case 'Metadata':
       return new Promise((resolve) => {
         return resolve(this.get_metadata(old_comment, field));
       });
+    default:
+      return new Promise((reject) => {
+        return reject('Relation not found.');
+      });
     }
   }
 
   get_value(old_comment, field) {
-    let value = old_comment;
-    if (field['source'].includes('.')) {
-      let i = field['source'].split('.');
-      for (const f of i) {
-        value = value[f];
-      }
-    } else {
-      value = old_comment[field['source']];
-    }
-    return value;
+    return old_comment[field.source];
   }
 
   get_metadata(old_comment, field) {
@@ -100,6 +99,25 @@ class Sponge {
       metadata[f['name']] = this.get_value(old_comment, f);
     }
     return metadata;
+  }
+
+  async create_user(old_user, fields, source_name) {
+    let u = {}
+    for (let f in fields) {
+      u[f] = await this.transform_field(old_user, fields[f], source_name);
+    }
+    let user = new userModel(u, source_name);
+    return user.get();
+  }
+
+  async create_asset(old_asset, fields, source_name) {
+    let a = {}
+    for (let f in fields) {
+      a[f] = await this.transform_field(old_asset, fields[f], source_name);
+    }
+
+    let asset = new assetModel(a, source_name);
+    return asset.get();
   }
 
 }

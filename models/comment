@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 
-class Comment {
+class CommentModel {
     constructor(data) {
         this.data = data;
+    }
+
+    get(){
+        return this.data;
     }
 }
 
@@ -15,3 +19,6 @@ class Comment {
       // console.log(post.isApproved);
       // console.log(post.isFlagged);
       // console.log(post.isDeletedByAuthor);
+
+
+module.exports = CommentModel;

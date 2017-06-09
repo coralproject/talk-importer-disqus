@@ -9,10 +9,10 @@ const program = require('./commander');
 const Strategy = require('./services/strategy');
 const Sponge = require('./services/sponge');
 const Talk = require('./services/talk');
+const Disqus = require('./services/disqus');
 
 const util = require('./util');
 const fs = require('fs');
-const Disqus = require('neo-disqus')
 
 /**
 * Import comments into the database.
@@ -31,27 +31,21 @@ function importComments(file) {
   const talk = new Talk();
 
   // Connect to disqus.  
-    const client = new Disqus({
-      access_token: strategy.data.service.access_token,
-      api_key: strategy.data.service.api_key,
-      api_secret: strategy.data.service.api_secret
-   })
-
-  const params = { forum: strategy.data.service.forum, limit: 2 }
-  
-  client.get(strategy.data.map.entities.comments.source, params).then(posts => {
+  const disqus = new Disqus(strategy.data.service);
+  disqus.get_comments(strategy.data.service.forum).then(posts => {
     for (i in posts.response) {
       post = posts.response[i]
-      comment = sponge.translate(post, 'comments')
-
-      // post into talk
-      talk.createComment(comment)
-      .then(() => {
-        console.log('Successful creation of comment.');
-      })
-      .catch((error) => {
-        console.log('Error when creating comment in Talk. ', error);
-      })
+      sponge.translate(post, 'comments')
+      .then((comment) => {
+        // post into talk
+        talk.createComment(comment)
+        .then(() => {
+          console.log('Successful creation of comment.');
+        })
+        .catch((error) => {
+          console.log('Error when creating comment in Talk. ', error);
+        })
+      });
     }
 
   })

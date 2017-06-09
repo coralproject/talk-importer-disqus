@@ -1,6 +1,30 @@
+#!/usr/bin/env node
+
+const neo_disqus = require('neo-disqus')
+
+const Source = require('./source');
+
 class Disqus extends Source {
-  hablar() {
-    super.hablar();
-    console.log(this.nombre + ' maulla.');
+  constructor(service) {
+    super();
+
+    // Connect to disqus.  
+    this.client = new neo_disqus({
+      access_token: service.access_token,
+      api_key: service.api_key,
+      api_secret: service.api_secret
+    })
+  }
+
+  get_comments(forum) {
+    const params = { forum: forum };
+    return this.client.get("forums/listPosts", params);
+  }
+
+  async get_asset(thread_id) {
+    const params = {thread: thread_id}
+    return this.client.get("threads/details", params);
   }
 }
+
+module.exports = Disqus;

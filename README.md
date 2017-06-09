@@ -2,6 +2,8 @@
 
 Importer of comments from "legacy systems" into our brilliant Coral Talk system :)
 
+# DISQUS 
+
 ## How to structure a request in Disqus
 
 https://disqus.com/api/{version}/{resource}.{output_type}
