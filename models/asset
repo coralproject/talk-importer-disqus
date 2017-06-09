@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+
+class Asset {
+    constructor(data) {
+        this.data = data;
+    }
+}

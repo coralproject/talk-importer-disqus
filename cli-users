@@ -1,0 +1,631 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+const program = require('./commander');
+const inquirer = require('inquirer');
+const fs = require('fs');
+
+const mongoose = require('../services/mongoose');
+const Table = require('cli-table');
+
+const UsersService = require('../services/users');
+const UserModel = require('../models/user');
+
+const util = require('./util');
+
+const validateRequired = (msg = 'Field is required', len = 1) => (input) => {
+  if (input && input.length >= len) {
+    return true;
+  }
+
+  return msg;
+};
+
+// Regeister the shutdown criteria.
+util.onshutdown([
+  () => mongoose.disconnect()
+]);
+
+function getUserCreateAnswers(options) {
+  if (options.flag_mode) {
+
+    let user = {
+      email: options.email,
+      password: options.password,
+      confirmPassword: options.password,
+      username: options.name,
+      roles: []
+    };
+
+    if (options.role && UserModel.USER_ROLES.indexOf(options.role) > -1) {
+      user.roles = [options.role];
+    }
+
+    return Promise.resolve(user);
+  }
+
+  return inquirer.prompt([
+    {
+      name: 'email',
+      message: 'Email',
+      format: 'email',
+      validate: validateRequired('Email is required')
+    },
+    {
+      name: 'password',
+      message: 'Password',
+      type: 'password',
+      filter: (password) => {
+        return UsersService
+          .isValidPassword(password)
+          .catch((err) => {
+            throw err.message;
+          });
+      }
+    },
+    {
+      name: 'confirmPassword',
+      message: 'Confirm Password',
+      type: 'password',
+      filter: (confirmPassword) => {
+        return UsersService
+          .isValidPassword(confirmPassword)
+          .catch((err) => {
+            throw err.message;
+          });
+      }
+    },
+    {
+      name: 'username',
+      message: 'Username',
+      filter: (username) => {
+        return UsersService
+          .isValidUsername(username)
+          .catch((err) => {
+            throw err.message;
+          });
+      }
+    },
+    {
+      name: 'roles',
+      message: 'User Role',
+      type: 'checkbox',
+      choices: UserModel.USER_ROLES
+    }
+  ]);
+}
+
+// Reads strategy file, validates it and returns an object.
+function normalizeStrategy(strategy_file) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(strategy_file, function(err, data) {
+      if (err) {
+        reject(err);
+      }
+      resolve(JSON.parse(data));
+    });
+  });
+}
+
+function get_value(old_user, field) {
+  let value = old_user;
+  if (field['source'].includes('.')) {
+    let i = field['source'].split('.');
+    for (const f of i) {
+      value = value[f];
+    }
+  } else {
+    value = old_user[field['source']];
+  }
+  return value;
+}
+
+function get_metadata(old_comment, field) {
+  let metadata = {};
+  for (let f of field['fields']) {
+    metadata[f['name']] = get_value(old_comment, f);
+  }
+  return metadata;
+}
+
+function transform_field(old_user, field) {
+  switch(field['relation']) {
+  case 'Identity':
+    return get_value(old_user, field);
+
+  case 'Status':
+    return field['status'][get_value(old_user, field)];
+
+  case 'Metadata':
+    return get_metadata(old_user, field);
+
+  case 'Provider':
+    return [{
+      'id': get_value(old_user, field),
+      'provider': 'wapo'
+    }];
+  }
+}
+
+function transform(old_user, strategy) {
+  let fields = strategy.fields;
+  let user = {};
+
+  for (let field in fields) {
+    user[field] = transform_field(old_user, fields[field]);
+  }
+
+  if (!user['username']) {
+    return Promise.reject(new Error('Username not defined.'));
+  }
+
+  user['lowercaseUsername'] = user['username'].toLowerCase();
+
+  // It needs to find a the user by the username.
+  // Otherwise it will create it with the data that has available.
+  return UserModel
+    .findOneAndUpdate(
+    {username: user['username']},
+    user,
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true
+    }
+  );
+}
+
+/**
+* Import users into the database.
+*/
+function importUsers(file) {
+
+  // Get strategy to use.
+  normalizeStrategy(file)
+    .then((strategy) => new Promise((resolve, reject) => {
+
+      console.info('Importing users for strategy %s.', strategy.name);
+
+      // Mongo data to import.
+      let url = strategy.database;
+
+      // Connect to the Mongo instance.
+      let db = mongoose.createConnection(url, {
+        server: {
+          socketOptions: {
+            keepAlive: 120,
+            socketTimeoutMS: 0,
+            connectionTimeout: 0
+          }
+        }
+      });
+
+      db.once('open', function(){
+        let actors = db.collection('actors');
+        let stream = actors.find().stream();
+
+        stream.on('data', function(doc) {
+
+          // work with the document to transform and import it
+          transform(doc, strategy.map.entities.users)
+          .then((user) => {
+            console.info('Imported %s.', user.id);
+          })
+          .catch((err) => {
+            console.log(doc);
+            console.error(err);
+          });
+        });
+
+        stream.on('error', (err) => {
+          return reject(err);
+        });
+
+        stream.on('end', () => {
+          return resolve();
+        });
+      });
+    }))
+    .then(() => {
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Prompts for input and registers a user based on those.
+ */
+function createUser(options) {
+  getUserCreateAnswers(options)
+    .then((answers) => {
+      if (answers.password !== answers.confirmPassword) {
+        return Promise.reject(new Error('Passwords do not match'));
+      }
+
+      return answers;
+    })
+    .then((answers) => {
+      return UsersService
+        .createLocalUser(answers.email.trim(), answers.password.trim(), answers.username.trim())
+        .then((user) => {
+          console.log(`Created user ${user.id}.`);
+
+          if (answers.roles.length > 0) {
+            return Promise.all(answers.roles.map((role) => {
+              return UsersService
+                .addRoleToUser(user.id, role)
+                .then(() => {
+                  console.log(`Added the role ${role} to User ${user.id}.`);
+                });
+            }));
+          }
+        });
+    })
+    .then(() => {
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown();
+    });
+}
+
+/**
+ * Deletes a user.
+ */
+function deleteUser(userID) {
+  UserModel
+    .findOneAndRemove({
+      id: userID
+    })
+    .then(() => {
+      console.log('Deleted user');
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown();
+    });
+}
+
+/**
+ * Changes the password for a user.
+ */
+function passwd(userID) {
+  inquirer.prompt([
+    {
+      name: 'password',
+      message: 'Password',
+      type: 'password',
+      validate: validateRequired('Password is required')
+    },
+    {
+      name: 'confirmPassword',
+      message: 'Confirm Password',
+      type: 'password',
+      validate: validateRequired('Confirm Password is required')
+    }
+  ])
+  .then((answers) => {
+    if (answers.password !== answers.confirmPassword) {
+      return Promise.reject(new Error('Password mismatch'));
+    }
+
+    return UsersService.changePassword(userID, answers.password);
+  })
+  .then(() => {
+    console.log('Password changed.');
+    util.shutdown();
+  })
+  .catch((err) => {
+    console.error(err);
+    util.shutdown(1);
+  });
+}
+
+/**
+ * Updates the user from the options array.
+ */
+function updateUser(userID, options) {
+  const updates = [];
+
+  if (options.email && typeof options.email === 'string' && options.email.length > 0) {
+    let q = UserModel.update({
+      'id': userID,
+      'profiles.provider': 'local'
+    }, {
+      $set: {
+        'profiles.$.id': options.email
+      }
+    });
+
+    updates.push(q);
+  }
+
+  if (options.name && typeof options.name === 'string' && options.name.length > 0) {
+    let q = UserModel.update({
+      'id': userID
+    }, {
+      $set: {
+        username: options.name
+      }
+    });
+
+    updates.push(q);
+  }
+
+  Promise
+    .all(updates.map((q) => q.exec()))
+    .then(() => {
+      console.log(`User ${userID} updated.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Lists all the users registered in the database.
+ */
+function listUsers() {
+  UsersService
+    .all()
+    .then((users) => {
+      let table = new Table({
+        head: [
+          'ID',
+          'Username',
+          'Profiles',
+          'Roles',
+          'Status',
+          'State'
+        ]
+      });
+
+      users.forEach((user) => {
+        table.push([
+          user.id,
+          user.username,
+          user.profiles.map((p) => p.provider).join(', '),
+          user.roles.join(', '),
+          user.status,
+          user.disabled ? 'Disabled' : 'Enabled'
+        ]);
+      });
+
+      console.log(table.toString());
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Merges two users using the specified ID's.
+ * @param  {String} dstUserID id of the user to which is the target of the merge
+ * @param  {String} srcUserID id of the user to which is the source of the merge
+ */
+function mergeUsers(dstUserID, srcUserID) {
+  UsersService
+    .mergeUsers(dstUserID, srcUserID)
+    .then(() => {
+      console.log(`User ${srcUserID} was merged into user ${dstUserID}.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Adds a role to a user
+ * @param  {String} userUD id of the user to add the role to
+ * @param  {String} role   the role to add
+ */
+function addRole(userID, role) {
+
+  if (UserModel.USER_ROLES.indexOf(role) === -1) {
+    console.error(`Role '${role}' is not supported. Supported roles are ${UserModel.USER_ROLES.join(', ')}.`);
+    util.shutdown(1);
+    return;
+  }
+
+  UsersService
+    .addRoleToUser(userID, role)
+    .then(() => {
+      console.log(`Added the ${role} role to User ${userID}.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Removes a role from a user
+ * @param  {String} userUD id of the user to remove the role from
+ * @param  {String} role   the role to remove
+ */
+function removeRole(userID, role) {
+
+  if (UserModel.USER_ROLES.indexOf(role) === -1) {
+    console.error(`Role '${role}' is not supported. Supported roles are ${UserModel.USER_ROLES.join(', ')}.`);
+    util.shutdown(1);
+    return;
+  }
+
+  UsersService
+    .removeRoleFromUser(userID, role)
+    .then(() => {
+      console.log(`Removed the ${role} role from User ${userID}.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Ban a user
+ * @param  {String} userID id of the user to ban
+ */
+function ban(userID) {
+  UsersService
+    .setStatus(userID, 'BANNED')
+    .then(() => {
+      console.log(`Banned the User ${userID}.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Unban a user
+ * @param  {String} userUD id of the user to remove the role from
+ */
+function unban(userID) {
+  UsersService
+    .setStatus(userID, 'ACTIVE')
+    .then(() => {
+      console.log(`Unban the User ${userID}.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Disable a given user.
+ * @param  {String} userID the ID of a user to disable
+ */
+function disableUser(userID) {
+  UsersService
+    .disableUser(userID)
+    .then(() => {
+      console.log(`User ${userID} was disabled.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+ * Enabled a given user.
+ * @param  {String} userID the ID of a user to enable
+ */
+function enableUser(userID) {
+  UsersService
+    .enableUser(userID)
+    .then(() => {
+      console.log(`User ${userID} was enabled.`);
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+//==============================================================================
+// Setting up the program command line arguments.
+//==============================================================================
+
+program
+  .command('import <file>')
+  .description('import users into database via strategy file')
+  .action(importUsers);
+
+program
+  .command('create')
+  .option('--email [email]', 'Email to use')
+  .option('--password [password]', 'Password to use')
+  .option('--name [name]', 'Name to use')
+  .option('--role [role]', 'Role to add')
+  .option('-f, --flag_mode', 'Source from flags instead of prompting')
+  .description('create a new user')
+  .action(createUser);
+
+program
+  .command('delete <userID>')
+  .description('delete a user')
+  .action(deleteUser);
+
+program
+  .command('passwd <userID>')
+  .description('change a password for a user')
+  .action(passwd);
+
+program
+  .command('update <userID>')
+  .option('--email [email]', 'Email to use')
+  .option('--name [name]', 'Name to use')
+  .description('update a user')
+  .action(updateUser);
+
+program
+  .command('list')
+  .description('list all the users in the database')
+  .action(listUsers);
+
+program
+  .command('merge <dstUserID> <srcUserID>')
+  .description('merge srcUser into the dstUser')
+  .action(mergeUsers);
+
+program
+  .command('addrole <userID> <role>')
+  .description('adds a role to a given user')
+  .action(addRole);
+
+program
+  .command('removerole <userID> <role>')
+  .description('removes a role from a given user')
+  .action(removeRole);
+
+program
+  .command('ban <userID>')
+  .description('ban a given user')
+  .action(ban);
+
+program
+  .command('uban <userID>')
+  .description('unban a given user')
+  .action(unban);
+
+program
+  .command('disable <userID>')
+  .description('disable a given user from logging in')
+  .action(disableUser);
+
+program
+  .command('enable <userID>')
+  .description('enable a given user from logging in')
+  .action(enableUser);
+
+program.parse(process.argv);
+
+// If there is no command listed, output help.
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+  util.shutdown();
+}

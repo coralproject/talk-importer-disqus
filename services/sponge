@@ -1,0 +1,107 @@
+#!/usr/bin/env node
+
+const commentModel = require('../models/comment');
+const userModel = require('../models/user');
+const assetModel = require('../models/asset');
+
+class Sponge {
+
+  constructor(strategy) {
+    this.strategy = strategy;
+  }
+
+
+  translate(post, model) {
+
+      let c = {};
+      let fields = this.strategy.map.entities[model].fields;
+
+      for (let field in fields) {
+        this.transform_field(post, fields[field])
+        .then((value) => {
+          c[field] = value;
+        })
+        .catch((error) => {
+          console.log('Error when transforming field: ', field, error);
+        });
+      }
+
+      // It helps to normalize and clean the comment object.
+      return new commentModel(c);
+  }
+
+  transform_field(old_comment, field) {
+    switch(field['relation']) {
+    case 'Identity':
+      return new Promise((resolve, reject) => {
+        let value = this.get_value(old_comment, field);
+        if (value == undefined) {
+          return reject('Error on getting identity value.');
+        }
+        return resolve(value);
+      });
+
+    case 'FindOrCreateUser':
+      return new Promise((resolve, reject) => {
+        let user = new userModel(this.get_value(old_comment, field));
+        if (user == undefined) {
+          return reject('Error on getting user field.');
+        }
+        return resolve(user);
+      });
+
+    case 'FindOrCreateAsset':
+      return new Promise((resolve, reject) => {
+        let asset = new assetModel(this.get_value(old_comment, field));
+        if (asset == undefined) {
+          return reject('Error on getting asset field.');
+        }
+        return resolve(asset);
+      });
+
+    case 'Status':
+      return new Promise((resolve) => {
+        return resolve(field['status'][this.get_value(old_comment, field)]);
+      });
+
+    // case 'Parent':  
+    // it needs to find a way to look for an existing parent
+    //   return new Promise((resolve, reject) => {
+    //     let comment = new commentModel(this.get_value(old_comment, field));
+    //     if (comment == undefined) {
+    //       return reject('Error on getting comment field.');
+    //     }
+    //     return resolve(comment);
+    //   });
+
+    case 'Metadata':
+      return new Promise((resolve) => {
+        return resolve(this.get_metadata(old_comment, field));
+      });
+    }
+  }
+
+  get_value(old_comment, field) {
+    let value = old_comment;
+    if (field['source'].includes('.')) {
+      let i = field['source'].split('.');
+      for (const f of i) {
+        value = value[f];
+      }
+    } else {
+      value = old_comment[field['source']];
+    }
+    return value;
+  }
+
+  get_metadata(old_comment, field) {
+    let metadata = {};
+    for (let f of field['fields']) {
+      metadata[f['name']] = this.get_value(old_comment, f);
+    }
+    return metadata;
+  }
+
+}
+
+module.exports = Sponge;

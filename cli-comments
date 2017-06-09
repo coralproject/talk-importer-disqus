@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+const program = require('./commander');
+
+const Strategy = require('./services/strategy');
+const Sponge = require('./services/sponge');
+const Talk = require('./services/talk');
+
+const util = require('./util');
+const fs = require('fs');
+const Disqus = require('neo-disqus')
+
+/**
+* Import comments into the database.
+*/
+function importComments(file) {
+
+  // Get strategy the strategy use.
+  const strategy = new Strategy(file);
+
+  // Get the transformation tool going.
+  const sponge = new Sponge(strategy.data);
+  
+  console.info('Importing comments for %s.', strategy.data.name);
+
+  // Connect to talk.
+  const talk = new Talk();
+
+  // Connect to disqus.  
+    const client = new Disqus({
+      access_token: strategy.data.service.access_token,
+      api_key: strategy.data.service.api_key,
+      api_secret: strategy.data.service.api_secret
+   })
+
+  const params = { forum: strategy.data.service.forum, limit: 2 }
+  
+  client.get(strategy.data.map.entities.comments.source, params).then(posts => {
+    for (i in posts.response) {
+      post = posts.response[i]
+      comment = sponge.translate(post, 'comments')
+
+      // post into talk
+      talk.createComment(comment)
+      .then(() => {
+        console.log('Successful creation of comment.');
+      })
+      .catch((error) => {
+        console.log('Error when creating comment in Talk. ', error);
+      })
+    }
+
+  })
+}
+
+//==============================================================================
+// Setting up the program command line arguments.
+//==============================================================================
+
+program
+  .command('import <file>')
+  .description('import comments into database via strategy file')
+  .action(importComments);
+
+program.parse(process.argv);
+
+// If there is no command listed, output help.
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+}

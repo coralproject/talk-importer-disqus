@@ -1,0 +1,6 @@
+class Disqus extends Source {
+  hablar() {
+    super.hablar();
+    console.log(this.nombre + ' maulla.');
+  }
+}

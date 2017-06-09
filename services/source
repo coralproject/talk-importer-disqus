@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+
+class Source {
+    constructor(){
+
+    }
+
+    connect(){}
+}

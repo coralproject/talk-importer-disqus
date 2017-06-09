@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+class Talk {
+    constructor(){
+        console.log('Connecting to Talk API Client.');
+    }
+    
+    createComment() {
+        return new Promise((resolve) => {
+            console.log('To Do: Placeholder for Comment Creation.');
+            resolve();
+        })
+    }
+}
+
+module.exports = Talk;

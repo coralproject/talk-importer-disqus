@@ -1,0 +1,203 @@
+Arguments: 
+  /Users/Gabriela/.nvm/versions/node/v7.7.3/bin/node /usr/local/bin/yarn install
+
+PATH: 
+  /Users/Gabriela/.nvm/versions/node/v7.7.3/bin:/Users/Gabriela/.rvm/gems/ruby-2.2.1/bin:/Users/Gabriela/.rvm/gems/ruby-2.2.1@global/bin:/Users/Gabriela/.rvm/rubies/ruby-2.2.1/bin:/usr/local/bin:/Users/Gabriela/Code/gocode/bin:/usr/local/opt/go/libexec/bin:/usr/local/sbin:/Users/Gabriela/bin:/Applications/Postgres.app/Contents/Versions/9.5/bin/:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/usr/local/go/bin:/usr/local/MacGPG2/bin:/Users/Gabriela/.rvm/gems/ruby-2.2.1/bin:/Users/Gabriela/.rvm/gems/ruby-2.2.1@global/bin:/Users/Gabriela/.rvm/rubies/ruby-2.2.1/bin:/Users/Gabriela/Code/gocode/bin:/usr/local/opt/go/libexec/bin:/usr/local/sbin:/Users/Gabriela/bin:/Applications/Postgres.app/Contents/Versions/9.5/bin/:/Users/Gabriela/.rvm/bin:/Users/Gabriela/.rvm/bin
+
+Yarn version: 
+  0.20.0
+
+Node version: 
+  7.7.3
+
+Platform: 
+  darwin x64
+
+npm manifest: 
+  {
+    "name": "talk-importer",
+    "version": "0.0.1",
+    "description": "A better commenting experience from Mozilla, The New York Times, and the Washington Post. https://coralproject.net",
+    "scripts": {
+      "lint": "eslint * .",
+      "lint-fix": "eslint * . --fix",
+      "test": "TEST_MODE=unit NODE_ENV=test mocha -R ${MOCHA_REPORTER:-spec}",
+      "test-cover": "TEST_MODE=unit NODE_ENV=test istanbul cover _mocha --report text --check-coverage -- -R spec"
+    },
+    "config": {
+      "pre-git": {
+        "commit-msg": [],
+        "pre-commit": [
+          "yarn lint",
+          "yarn test"
+        ],
+        "pre-push": [
+          "yarn test"
+        ],
+        "post-commit": [],
+        "post-merge": []
+      }
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/coralproject/talk-importer.git"
+    },
+    "keywords": [
+      "talk",
+      "coral",
+      "coralproject"
+    ],
+    "author": "Gabriela Rodriguez Beron",
+    "license": "Apache-2.0",
+    "bugs": {
+      "url": "https://github.com/coralproject/talk-importer/issues"
+    },
+    "homepage": "https://github.com/coralproject/talk-importer#readme",
+    "dependencies": {
+      "accepts": "^1.3.3",
+      "app-module-path": "^2.2.0",
+      "bcrypt": "^1.0.2",
+      "body-parser": "^1.17.1",
+      "bowser": "^1.7.0",
+      "cli-table": "^0.3.1",
+      "colors": "^1.1.2",
+      "commander": "^2.9.0",
+      "compression": "^1.6.2",
+      "connect-redis": "^3.1.0",
+      "cookie-parser": "^1.4.3",
+      "cross-spawn": "^5.1.0",
+      "csurf": "^1.9.0",
+      "dataloader": "^1.3.0",
+      "debug": "^2.6.3",
+      "dotenv": "^4.0.0",
+      "ejs": "^2.5.6",
+      "env-rewrite": "^1.0.2",
+      "express": "^4.15.2",
+      "express-session": "^1.15.1",
+      "form-data": "^2.1.2",
+      "gql-merge": "^0.0.4",
+      "graphql": "^0.9.1",
+      "graphql-errors": "^2.1.0",
+      "graphql-redis-subscriptions": "^1.1.5",
+      "graphql-server-express": "^0.6.0",
+      "graphql-subscriptions": "^0.3.1",
+      "graphql-tools": "^0.10.1",
+      "helmet": "^3.5.0",
+      "immutability-helper": "^2.2.0",
+      "inquirer": "^3.0.6",
+      "joi": "^10.4.1",
+      "jsonwebtoken": "^7.3.0",
+      "jwt-decode": "^2.2.0",
+      "kue": "^0.11.5",
+      "linkify-it": "^2.0.3",
+      "lodash": "^4.16.6",
+      "marked": "^0.3.6",
+      "metascraper": "^1.0.6",
+      "minimist": "^1.2.0",
+      "mongoose": "^4.9.8",
+      "morgan": "^1.8.1",
+      "natural": "^0.5.0",
+      "node-emoji": "^1.5.1",
+      "node-fetch": "^1.6.3",
+      "nodemailer": "^2.6.4",
+      "parse-duration": "^0.1.1",
+      "passport": "^0.3.2",
+      "passport-jwt": "^2.2.1",
+      "passport-local": "^1.0.0",
+      "prop-types": "^15.5.8",
+      "react-apollo": "^1.1.0",
+      "react-recaptcha": "^2.2.6",
+      "react-toastify": "^1.5.0",
+      "recompose": "^0.23.1",
+      "redis": "^2.7.1",
+      "resolve": "^1.3.2",
+      "semver": "^5.3.0",
+      "simplemde": "^1.11.2",
+      "subscriptions-transport-ws": "^0.5.5-alpha.0",
+      "timekeeper": "^1.0.0",
+      "uuid": "^3.0.1",
+      "yaml-loader": "^0.4.0",
+      "yamljs": "^0.2.10"
+    },
+    "devDependencies": {
+      "autoprefixer": "^6.5.2",
+      "babel-cli": "^6.24.0",
+      "babel-core": "^6.24.0",
+      "babel-eslint": "^7.2.1",
+      "babel-jest": "^19.0.0",
+      "babel-loader": "^6.4.1",
+      "babel-plugin-add-module-exports": "^0.2.1",
+      "babel-plugin-transform-async-to-generator": "^6.16.0",
+      "babel-plugin-transform-class-properties": "^6.23.0",
+      "babel-plugin-transform-decorators-legacy": "^1.3.4",
+      "babel-plugin-transform-object-assign": "^6.8.0",
+      "babel-plugin-transform-object-rest-spread": "^6.23.0",
+      "babel-plugin-transform-react-jsx": "^6.23.0",
+      "babel-polyfill": "^6.23.0",
+      "babel-preset-es2015": "^6.24.0",
+      "babel-preset-react": "^6.23.0",
+      "babel-preset-stage-0": "^6.16.0",
+      "chai": "^3.5.0",
+      "chai-as-promised": "^6.0.0",
+      "chai-http": "^3.0.0",
+      "common-tags": "^1.4.0",
+      "compression-webpack-plugin": "^0.4.0",
+      "copy-webpack-plugin": "^4.0.0",
+      "css-loader": "^0.27.3",
+      "dialog-polyfill": "^0.4.4",
+      "enzyme": "^2.6.0",
+      "eslint": "^3.12.1",
+      "eslint-config-postcss": "^2.0.2",
+      "eslint-config-standard": "^6.2.1",
+      "eslint-module-utils": "^2.0.0",
+      "eslint-plugin-flowtype": "^2.25.0",
+      "eslint-plugin-import": "^2.2.0",
+      "eslint-plugin-mocha": "^4.7.0",
+      "eslint-plugin-promise": "^3.3.1",
+      "eslint-plugin-react": "^6.6.0",
+      "eslint-plugin-standard": "^2.0.1",
+      "exports-loader": "^0.6.4",
+      "fetch-mock": "^5.5.0",
+      "graphql-docs": "^0.2.0",
+      "graphql-tag": "^1.2.3",
+      "hammerjs": "^2.0.8",
+      "ignore-styles": "^5.0.1",
+      "immutable": "^3.8.1",
+      "imports-loader": "^0.7.1",
+      "istanbul": "^1.1.0-alpha.1",
+      "jsdom": "^9.8.3",
+      "json-loader": "^0.5.4",
+      "keymaster": "^1.6.2",
+      "license-webpack-plugin": "^0.4.2",
+      "material-design-lite": "^1.2.1",
+      "mocha": "^3.1.2",
+      "mocha-junit-reporter": "^1.12.1",
+      "nightwatch": "^0.9.11",
+      "nodemon": "^1.11.0",
+      "postcss-loader": "^1.3.3",
+      "postcss-modules": "^0.5.2",
+      "postcss-smart-import": "^0.5.1",
+      "pre-git": "^3.10.0",
+      "redux": "^3.6.0",
+      "redux-mock-store": "^1.2.1",
+      "redux-thunk": "^2.1.0",
+      "regenerator": "^0.8.46",
+      "style-loader": "^0.16.0",
+      "subscriptions-transport-ws": "^0.5.5-alpha.0",
+      "supertest": "^2.0.1"
+    },
+    "engines": {
+      "node": "^7.8.0"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
+
+Trace: 
+  Error: getaddrinfo ENOTFOUND registry.yarnpkg.com registry.yarnpkg.com:443
+      at errnoException (dns.js:28:10)
+      at GetAddrInfoReqWrap.onlookup [as oncomplete] (dns.js:73:26)

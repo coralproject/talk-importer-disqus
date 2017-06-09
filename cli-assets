@@ -1,0 +1,205 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+const program = require('./commander');
+const parseDuration = require('parse-duration');
+const Table = require('cli-table');
+const AssetModel = require('../models/asset');
+
+const AssetService = require('../services/assets');
+const mongoose = require('../services/mongoose');
+const scraper = require('../services/scraper');
+const util = require('./util');
+
+const fs = require('fs');
+
+// Register the shutdown criteria.
+util.onshutdown([
+  () => mongoose.disconnect()
+]);
+
+// Reads strategy file, validates it and returns an object.
+function normalizeStrategy(strategy_file) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(strategy_file, function(err, data) {
+      if (err) {
+        reject(err);
+      }
+      resolve(JSON.parse(data));
+    });
+  });
+}
+
+function transform(old_asset, strategy) {
+  let fields = strategy.fields;
+  let URLField = fields.url.source;
+
+  return AssetService
+    .findOrCreateByUrl(old_asset[URLField])
+    .then((asset) => {
+      asset['section'] = old_asset[fields['section']['source']];
+      asset['metadata'] = {};
+      for (let field in fields.metadata) {
+        asset['metadata'][field['source']] = old_asset[field['source']];
+      }
+      return AssetModel.update({id: asset['id']}, {
+        $set: {
+          section: asset['section'] || '',
+          metadata: asset['metadata'] || ''
+        }
+      });
+    });
+}
+
+/**
+ * Lists all the assets registered in the database.
+ */
+function listAssets() {
+  AssetModel
+    .find({})
+    .sort({'created_at': 1})
+    .then((asset) => {
+      let table = new Table({
+        head: [
+          'ID',
+          'Title',
+          'URL'
+        ]
+      });
+
+      asset.forEach((asset) => {
+        table.push([
+          asset.id,
+          asset.title ? asset.title : '',
+          asset.url ? asset.url : ''
+        ]);
+      });
+
+      console.log(table.toString());
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+/**
+* Import assets into the database.
+*/
+function importAssets(file) {
+
+  normalizeStrategy(file)
+    .then((strategy) => new Promise((resolve, reject) => {
+
+      console.log('Importing assets for strategy %s.', strategy.name);
+
+      // Mongo data to import.
+      let url = strategy.database;
+
+      // Connect to the Mongo instance.
+      let db = mongoose.createConnection(url, {
+        server: {
+          socketOptions: {
+            keepAlive: 120,
+            socketTimeoutMS: 0,
+            connectionTimeout: 0
+          }
+        }
+      });
+
+      db.once('open', function() {
+        let assets = db.collection('assets');
+        let stream = assets.find().stream();
+
+        stream.on('data', (doc) => {
+
+          // work with the document to transform and import it
+          transform(doc, strategy.map.entities.assets)
+            .then((asset) => {
+              console.log('Imported asset %s.', asset.url);
+            })
+            .catch((err) => {
+              console.log(doc);
+              console.error(err);
+            });
+        });
+
+        stream.on('error', (err) => {
+          return reject(err);
+        });
+
+        stream.on('end', () => {
+          return resolve();
+        });
+      });
+    }))
+    .then(() => {
+      util.shutdown();
+    })
+    .catch((err) => {
+      console.error(err);
+      util.shutdown(1);
+    });
+}
+
+function refreshAssets(ageString) {
+  const now = new Date().getTime();
+  const ageMs = parseDuration(ageString);
+  const age = new Date(now - ageMs);
+
+  AssetModel.find({
+    $or: [
+      {
+        scraped: {
+          $lte: age
+        }
+      },
+      {
+        scraped: null
+      }
+    ]
+  })
+
+  // Queue all the assets for scraping.
+  .then((assets) => Promise.all(assets.map(scraper.create)))
+
+  .then(() => {
+    console.log('Assets were queued to be scraped');
+    util.shutdown();
+  })
+  .catch((err) => {
+    console.error(err);
+    util.shutdown(1);
+  });
+}
+
+//==============================================================================
+// Setting up the program command line arguments.
+//==============================================================================
+
+program
+  .command('list')
+  .description('list all the assets in the database')
+  .action(listAssets);
+
+program
+  .command('import <file>')
+  .description('import assets into database via strategy file')
+  .action(importAssets);
+
+program
+  .command('refresh <age>')
+  .description('queues the assets that exceed the age requested')
+  .action(refreshAssets);
+
+program.parse(process.argv);
+
+// If there is no command listed, output help.
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+  util.shutdown();
+}

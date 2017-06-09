@@ -1,0 +1,71 @@
+{
+  "name": "talk-importer",
+  "version": "0.0.1",
+  "description": "A better commenting experience from Mozilla, The New York Times, and the Washington Post. https://coralproject.net",
+  "scripts": {
+    "lint": "eslint * .",
+    "lint-fix": "eslint * . --fix",
+    "test": "TEST_MODE=unit NODE_ENV=test mocha -R ${MOCHA_REPORTER:-spec}",
+    "test-cover": "TEST_MODE=unit NODE_ENV=test istanbul cover _mocha --report text --check-coverage -- -R spec"
+  },
+  "config": {
+    "pre-git": {
+      "commit-msg": [],
+      "pre-commit": [
+        "yarn lint",
+        "yarn test"
+      ],
+      "pre-push": [
+        "yarn test"
+      ],
+      "post-commit": [],
+      "post-merge": []
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coralproject/talk-importer.git"
+  },
+  "keywords": [
+    "talk",
+    "coral",
+    "coralproject",
+    "data import"
+  ],
+  "author": "The Coral Project",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/coralproject/talk-importer/issues"
+  },
+  "homepage": "https://github.com/coralproject/talk-importer#readme",
+  "dependencies": {
+    "cli-table": "^0.3.1",
+    "commander": "^2.9.0",
+    "debug": "^2.6.3",
+    "dotenv": "^4.0.0",
+    "neo-disqus": "^0.1.0",
+    "resolve": "^1.3.2"
+  },
+  "devDependencies": {
+    "common-tags": "^1.4.0",
+    "dialog-polyfill": "^0.4.4",
+    "enzyme": "^2.6.0",
+    "eslint": "^3.12.1",
+    "eslint-config-postcss": "^2.0.2",
+    "eslint-config-standard": "^6.2.1",
+    "eslint-module-utils": "^2.0.0",
+    "eslint-plugin-flowtype": "^2.25.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-mocha": "^4.7.0",
+    "eslint-plugin-promise": "^3.3.1",
+    "eslint-plugin-react": "^6.6.0",
+    "eslint-plugin-standard": "^2.0.1",
+    "nodemon": "^1.11.0",
+    "pre-git": "^3.10.0",
+    "regenerator": "^0.8.46",
+    "supertest": "^2.0.1"
+  },
+  "engines": {
+    "node": "^7.8.0"
+  }
+}

@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+
+class User {
+    constructor(data) {
+        this.data = data;
+    }
+}

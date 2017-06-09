@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+
+class Strategy {
+
+  constructor(strategy_file) {
+    this.data = this.normalize(strategy_file);
+  }
+
+  // Reads strategy file, validates it and returns an object.
+  normalize(strategy_file) {
+    return JSON.parse(fs.readFileSync(strategy_file, 'utf-8'));
+  }
+}
+
+module.exports = Strategy;
