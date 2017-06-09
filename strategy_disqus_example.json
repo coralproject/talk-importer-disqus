@@ -1,0 +1,137 @@
+{
+  "name": "Disqus",
+  "talk": {
+    "url": "http://127.0.0.1:3000/api/v1/"
+    },
+  "service": {
+    "url": "http://disqus.com",
+    "api_secret": "",
+    "api_key": "",
+    "access_token": "",
+    "forum": "disqus"
+  },
+  "map": {
+    "entities": {
+      "comments": {
+        "source": "forums/listPosts",
+        "fields": {
+          "author_id": {
+            "source":"author",
+            "relation":"FindOrCreateUser",
+            "type":"Object",
+            "object": "author",
+            "map": {
+              "fields": {
+                "username": "name",
+                "provider": "disqus",
+                "created_at": "joinedAt",
+                "metadata": [ "about", "isPowerContributor", "id", "avatar", "profileUrl", "url", "location", "isPrivate", "isPrimary", "isAnonymous"]
+              }
+            }
+          },
+          "asset_id": {
+            "source":"thread",
+            "relation":"FindOrCreateAsset",
+            "type":"ID"
+          },
+          "body": {
+            "source":"message",
+            "relation":"Identity",
+            "type":"String"
+          },
+          "status": {
+            "source":"isApproved",
+            "relation":"Status",
+            "type":"Boolean",
+            "status": {
+              "true": "ACCEPTED",
+              "false": "REJECTED"
+            }
+          },
+          "parent_id": {
+            "source":"parent",
+            "relation":"Parent",
+            "type":"String",
+            "search_field": "metadata.id"
+          },
+          "created_at": {
+            "source":"createdAt",
+            "relation":"Identity",
+            "type":"Date"
+          },
+          "metadata": {
+            "relation": "Metadata",
+            "fields": [
+              {
+                "source": "likes",
+                "relation": "Identity",
+                "type": "Int",
+                "name": "likes"
+              },
+              {
+                "source": "dislikes",
+                "relation": "Identity",
+                "type": "Int",
+                "name": "dislikes"
+              },
+               {
+                "source": "",
+                "relation": "Identity",
+                "type": "Int",
+                "name": ""
+              },
+              {
+                "source": "numReports",
+                "relation": "Identity",
+                "type": "Int",
+                "name": "reports"
+              },
+              {
+                "source": "isSpam",
+                "relation": "Identity",
+                "type": "Boolean",
+                "name": "isSpam"
+              },
+              {
+                "source": "isDeleted",
+                "relation": "Identity",
+                "type": "Boolean",
+                "name": "isDeleted"
+              },
+              {
+                "source": "isDeletedByAuthor",
+                "relation": "Identity",
+                "type": "Boolean",
+                "name": "isDeletedByAuthor"
+              },
+              {
+                "source": "isFlagged",
+                "relation": "Identity",
+                "type": "Boolean",
+                "name": "isFlagged"
+              },
+               {
+                "source": "isHighlighted",
+                "relation": "Identity",
+                "type": "Boolean",
+                "name": "isHighlighted"
+              },
+              {
+                "source": "isEdited",
+                "relation": "Identity",
+                "type": "Boolean",
+                "name": "isEdited"
+              },              
+              {
+                "source": "thread",
+                "relation": "Identity",
+                "type": "Int",
+                "name": "source_asset"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
