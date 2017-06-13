@@ -12,11 +12,8 @@
     "pre-git": {
       "commit-msg": [],
       "pre-commit": [
-        "yarn lint",
-        "yarn test"
       ],
       "pre-push": [
-        "yarn test"
       ],
       "post-commit": [],
       "post-merge": []
@@ -44,6 +41,7 @@
     "commander": "^2.9.0",
     "debug": "^2.6.3",
     "dotenv": "^4.0.0",
+    "eslint-config": "^0.3.0",
     "neo-disqus": "^0.1.0",
     "resolve": "^1.3.2"
   },
@@ -53,7 +51,7 @@
     "enzyme": "^2.6.0",
     "eslint": "^3.12.1",
     "eslint-config-postcss": "^2.0.2",
-    "eslint-config-standard": "^6.2.1",
+    "eslint-config-standard": "^10.2.1",
     "eslint-module-utils": "^2.0.0",
     "eslint-plugin-flowtype": "^2.25.0",
     "eslint-plugin-import": "^2.2.0",

@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 
-const commentService = require('../services/talk/services/comments');
-const userService = require('../services/talk/services/users');
-const assetService = require('../services/talk/services/assets');
-
 const Disqus = require('./disqus');
+const TalkService = require('./talk-service');
 
 class Sponge {
 
   constructor(strategy) {
     this.strategy = strategy;
     this.disqus = new Disqus(strategy.service);
+    this.talk = new TalkService();
   }
 
   async translate(post, model) {
@@ -19,12 +17,16 @@ class Sponge {
       let fields = this.strategy.map.entities[model].fields;
 
       for (let field in fields) {
-        c[field] = await this.transform_field(post, fields[field], this.strategy.name);
+        await this.transform_field(post, fields[field], this.strategy.name)
+        .then((value) => {
+          c[field] = value;
+        })
+        .catch((error) => {
+          console.log('Error when transforming field ', field, error);
+        });
       }
-      let comment = commentService.create(c);
-  
-      // It helps to normalize and clean the comment object.
-      return comment.get();
+
+      return this.talk.createComment(c);
   }
 
   async transform_field(old_comment, field, source_name) {
@@ -50,13 +52,12 @@ class Sponge {
     case 'FindOrCreateAsset':
     
       let old_asset = await this.disqus.get_asset(old_comment[field.source]);
-      let asset = this.create_asset(old_asset.response, field.map.fields, source_name);
+      let asset_id = this.create_asset(old_asset.response, field.map.fields, source_name);
       return new Promise((resolve, reject) => {
-        // get the asset information for old_comment[field.source]
-        if (asset == undefined) {
+        if (asset_id == undefined) {
           return reject('Error on getting asset field.');
         }
-        return resolve(asset);
+        return resolve(asset_id);
       });
 
     case 'Status':
@@ -65,12 +66,12 @@ class Sponge {
       });
 
     case 'Parent':  
+      let parent_id = this.create_parent(old_comment, field);
       return new Promise((resolve, reject) => {
-        let comment = commentService.create(this.get_value(old_comment, field))
-        if (comment == undefined) {
-          return reject('Error on getting comment field.');
+        if (parent_id == undefined) {
+          return reject('Error on getting parent_id field.');
         }
-        return resolve(comment);
+        return resolve(parent_id);
       });
 
     case 'Metadata':
@@ -102,8 +103,10 @@ class Sponge {
       u[f] = await this.transform_field(old_user, fields[f], source_name);
     }
     u['provider'] = 'Disqus';
-    let user = userService.findOrCreateExternalUser(u)
-    return user;
+
+    const user = this.talk.createUser(u);
+
+    return user.id;
   }
 
   async create_asset(old_asset, fields, source_name) {
@@ -112,8 +115,25 @@ class Sponge {
       a[f] = await this.transform_field(old_asset, fields[f], source_name);
     }
 
-    let asset = assetService.findOrCreateByUrl(a.url);
-    return asset.get();
+    let asset = this.talk.createAsset(a);
+    return asset.id;
+  }
+
+  create_parent(old_comment, field) {
+      return this.talk.findComment(this.get_value(old_comment,field.search_field))
+      .then((comment) => {
+        if (comment == null) {
+          return null;
+        } 
+        return comment.id;
+      })
+      .catch((error) => {
+        console.log('Error finding the parent comment ', error);
+        return null;
+      });
+      
+      // let parent = this.talk.createComment(this.get_value(old_comment, field));
+      // return parent.id
   }
 
 }

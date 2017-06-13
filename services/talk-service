@@ -1,14 +1,29 @@
 #!/usr/bin/env node
 
 const commentService = require('./talk/services/comments');
+const userService = require('./talk/services/users');
+const assetService = require('./talk/services/assets');
 
 class Talk {
     constructor(){
+        // setup talk
         console.log('Connecting to Talk API Client.');
+    }
+
+    findComment(id) {
+        return commentService.findById(id);
     }
 
     createComment(comment) {
         return commentService.publicCreate(comment);
+    }
+
+    createUser(user) {
+        return userService.findOrCreateExternalUser(user);
+    }
+
+    createAsset(asset) {
+        return assetService.findOrCreateByUrl(asset.url);
     }
 }
 

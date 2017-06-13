@@ -9,11 +9,18 @@ const program = require('./commander');
 const Strategy = require('./services/strategy');
 const Sponge = require('./services/sponge');
 
-// const Talk = require('./services/talk-service');
+const TalkService = require('./services/talk-service');
+const mongoose = require('./services/talk/services/mongoose');
+
 const Disqus = require('./services/disqus');
 
 const util = require('./util');
 const fs = require('fs');
+
+// Register the shutdown criteria.
+util.onshutdown([
+  () => mongoose.disconnect()
+]);
 
 /**
 * Import comments into the database.
@@ -29,29 +36,30 @@ function importComments(file) {
   console.info('Importing comments for %s.', strategy.data.name);
 
   // // Connect to talk.
-  // const talk = new Talk();
+  const talk = new TalkService();
 
   // Connect to disqus.  
   const disqus = new Disqus(strategy.data.service);
-  disqus.get_comments(strategy.data.service.forum).then(posts => {
+  disqus.get_comments(strategy.data.service.forum)
+  .then(posts => {
     for (i in posts.response) {
       post = posts.response[i]
 
       sponge.translate(post, 'comments')
       .then((comment) => {
-          console.log('comment');
-        // // post into talk
-        // talk.createComment(comment)
-        // .then(() => {
-        //   console.log('Successful creation of comment.');
-        // })
-        // .catch((error) => {
-        //   console.log('Error when creating comment in Talk. ', error.message);
-        // })
+        console.log('Success', comment.id);
+        util.shutdown();
+      })
+      .catch((error) => {
+        console.log('Error translating or importing a comment. ', error);
+        util.shutdown(1);
       });
     }
-
   })
+  .catch(error => {
+    console.log('Error getting comments from Disqus. ', error);
+    util.shutdown(1);
+  });
 }
 
 //==============================================================================
@@ -68,4 +76,5 @@ program.parse(process.argv);
 // If there is no command listed, output help.
 if (!process.argv.slice(2).length) {
   program.outputHelp();
+  util.shutdown();
 }
