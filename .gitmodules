@@ -1,0 +1,3 @@
+[submodule "talk"]
+	path = services/talk
+	url = https://github.com/coralproject/talk

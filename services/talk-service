@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+
+const commentService = require('./talk/services/comments');
+
+class Talk {
+    constructor(){
+        console.log('Connecting to Talk API Client.');
+    }
+
+    createComment(comment) {
+        return commentService.publicCreate(comment);
+    }
+}
+
+module.exports = Talk;

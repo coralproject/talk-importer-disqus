@@ -2,7 +2,6 @@
 
 class Source {
     constructor(){
-        console.log('source');
     }
 }
 

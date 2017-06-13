@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-const commentModel = require('../models/comment');
-const userModel = require('../models/user');
-const assetModel = require('../models/asset');
-
+const commentService = require('../services/talk/services/comments');
+const userService = require('../services/talk/services/users');
+const assetService = require('../services/talk/services/assets');
 
 const Disqus = require('./disqus');
 
@@ -14,18 +13,15 @@ class Sponge {
     this.disqus = new Disqus(strategy.service);
   }
 
-
   async translate(post, model) {
 
       let c = {};
       let fields = this.strategy.map.entities[model].fields;
 
-      console.log('WHAT ARE THE FIELDS!!!? ', fields);
       for (let field in fields) {
         c[field] = await this.transform_field(post, fields[field], this.strategy.name);
-        console.log('translate ', field, c[field]);
       }
-      let comment = new commentModel(c);
+      let comment = commentService.create(c);
   
       // It helps to normalize and clean the comment object.
       return comment.get();
@@ -37,7 +33,6 @@ class Sponge {
       return new Promise((resolve, reject) => {
         let value = this.get_value(old_comment, field);
         if (value == undefined) {
-          console.log('undefined');
           reject('Error on getting identity value.');
         }
         resolve(value);
@@ -45,11 +40,11 @@ class Sponge {
 
     case 'FindOrCreateUser':
       return new Promise((resolve, reject) => {
-        let user = this.create_user(old_comment[field.source], field.map.fields, source_name);
+        let user = this.transform_user(old_comment[field.source], field.map.fields, source_name);
         if (user == undefined) {
           return reject('Error on getting user field.');
         }
-        return resolve(user);
+        return resolve(user.id);
       });
 
     case 'FindOrCreateAsset':
@@ -71,7 +66,7 @@ class Sponge {
 
     case 'Parent':  
       return new Promise((resolve, reject) => {
-        let comment = new commentModel(this.get_value(old_comment, field));
+        let comment = commentService.create(this.get_value(old_comment, field))
         if (comment == undefined) {
           return reject('Error on getting comment field.');
         }
@@ -101,13 +96,14 @@ class Sponge {
     return metadata;
   }
 
-  async create_user(old_user, fields, source_name) {
+  async transform_user(old_user, fields, source_name) {
     let u = {}
     for (let f in fields) {
       u[f] = await this.transform_field(old_user, fields[f], source_name);
     }
-    let user = new userModel(u, source_name);
-    return user.get();
+    u['provider'] = 'Disqus';
+    let user = userService.findOrCreateExternalUser(u)
+    return user;
   }
 
   async create_asset(old_asset, fields, source_name) {
@@ -116,7 +112,7 @@ class Sponge {
       a[f] = await this.transform_field(old_asset, fields[f], source_name);
     }
 
-    let asset = new assetModel(a, source_name);
+    let asset = assetService.findOrCreateByUrl(a.url);
     return asset.get();
   }
 
