@@ -17,7 +17,7 @@ class Disqus extends Source {
   }
 
   get_comments(forum) {
-    const params = { forum: forum };
+    const params = { forum: forum , limit: 100};
     return this.client.get("forums/listPosts", params);
   }
 

@@ -3,6 +3,7 @@
 const commentService = require('./talk/services/comments');
 const userService = require('./talk/services/users');
 const assetService = require('./talk/services/assets');
+const actionService = require('./talk/services/actions');
 
 class Talk {
     constructor(){
@@ -47,6 +48,16 @@ class Talk {
         })
         .catch((error) => {
             console.log('Error when creating asset: ', asset.url, error);
+        });
+    }
+
+    createAction(action) {
+        return actionService.insertUserAction(action)
+        .then((a) => {
+            return a;
+        })
+        .catch((error) => {
+            console.log(`Error when creating action on ${action.item_id}: ${error}`);
         });
     }
 }

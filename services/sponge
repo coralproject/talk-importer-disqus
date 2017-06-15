@@ -25,7 +25,22 @@ class Sponge {
         });
       }
 
-      return this.talk.createComment(c);
+      return this.talk.createComment(c).then((comment) => {
+        // To Do: once is created it needs to add any flags to the actions
+        // Look if it is flagged
+        if (comment.metadata.isFlagged) {
+          let action = {};
+
+          action.action_type = 'FLAG';
+          action.item_type = 'COMMENTS';
+          action.item_id = comment.id;
+          action.user_id = null;
+          action.group_id = 'Other';
+          action.metadata = { 'message': 'Disqus'};
+
+          this.talk.createAction(action);
+        }
+      });
   }
 
   async transform_field(old_comment, field, source_name) {
@@ -34,9 +49,9 @@ class Sponge {
       return new Promise((resolve, reject) => {
         let value = this.get_value(old_comment, field);
         if (value == undefined) {
-          reject(`Did not found value for field ${field.source}.`);
+          return reject(`Did not found value for field ${field.source}.`);
         }
-        resolve(value);
+        return resolve(value);
       });
 
     case 'FindOrCreateUser':

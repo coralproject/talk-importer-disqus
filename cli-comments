@@ -34,7 +34,7 @@ async function importComments(file) {
   // Get the transformation tool going.
   const sponge = new Sponge(strategy.data);
   
-  console.info('Importing comments for %s.', strategy.data.name);
+  console.info('Importing comments from %s.', strategy.data.name);
 
   // Connect to disqus.  
   const disqus = new Disqus(strategy.data.service);
@@ -43,10 +43,11 @@ async function importComments(file) {
 
   disqus.get_comments(strategy.data.service.forum)
   .then(posts => {
-    for (i in posts.response) {
+    for (let i in posts.response) {
       post = posts.response[i]
 
       resolve = resolve.then(() => {
+        console.log(`Translating post ${post.raw_message}`);
         return sponge.translate(post, 'comments')
       })
       .catch((error) => {
