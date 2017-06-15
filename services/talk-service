@@ -6,24 +6,48 @@ const assetService = require('./talk/services/assets');
 
 class Talk {
     constructor(){
-        // setup talk
+        // To Do, adding service.url to talk whitelist domains.
         console.log('Connecting to Talk API Client.');
     }
 
     findComment(id) {
-        return commentService.findById(id);
+        return commentService.findById(id)
+        .then((c) => {
+            return c;
+        })
+        .catch((error) => {
+            console.log('Error when finding comment: ', error);
+        });
     }
 
     createComment(comment) {
-        return commentService.publicCreate(comment);
+        return commentService.publicCreate(comment)
+        .then((c) => {
+            return c;
+        })
+        .catch((error) => {
+            console.log('Error when creating comment: ', error);
+        });
     }
 
+    // User needs {id, provider, displayName}
     createUser(user) {
-        return userService.findOrCreateExternalUser(user);
+
+        let id = user.id;
+        let provider = user.provider;
+        let displayName = user.displayName;
+
+        return userService.findOrCreateExternalUser({id, provider, displayName});
     }
 
     createAsset(asset) {
-        return assetService.findOrCreateByUrl(asset.url);
+        return assetService.findOrCreateByUrl(asset.url)
+        .then((a) => {
+            return a;
+        })
+        .catch((error) => {
+            console.log('Error when creating asset: ', asset.url, error);
+        });
     }
 }
 

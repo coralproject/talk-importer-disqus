@@ -8,11 +8,10 @@ class Sponge {
   constructor(strategy) {
     this.strategy = strategy;
     this.disqus = new Disqus(strategy.service);
-    this.talk = new TalkService();
+    this.talk = new TalkService(strategy.service.url);
   }
 
   async translate(post, model) {
-
       let c = {};
       let fields = this.strategy.map.entities[model].fields;
 
@@ -35,24 +34,25 @@ class Sponge {
       return new Promise((resolve, reject) => {
         let value = this.get_value(old_comment, field);
         if (value == undefined) {
-          reject('Error on getting identity value.');
+          reject(`Did not found value for field ${field.source}.`);
         }
         resolve(value);
       });
 
     case 'FindOrCreateUser':
       return new Promise((resolve, reject) => {
-        let user = this.transform_user(old_comment[field.source], field.map.fields, source_name);
-        if (user == undefined) {
+        let user_id = this.transform_user(old_comment[field.source], field.map.fields, source_name);
+        if (user_id == undefined) {
           return reject('Error on getting user field.');
         }
-        return resolve(user.id);
+        return resolve(user_id);
       });
 
     case 'FindOrCreateAsset':
     
       let old_asset = await this.disqus.get_asset(old_comment[field.source]);
-      let asset_id = this.create_asset(old_asset.response, field.map.fields, source_name);
+      let asset_id = await this.create_asset(old_asset.response, field.map.fields, source_name);
+
       return new Promise((resolve, reject) => {
         if (asset_id == undefined) {
           return reject('Error on getting asset field.');
@@ -61,8 +61,12 @@ class Sponge {
       });
 
     case 'Status':
-      return new Promise((resolve) => {
-        return resolve(field['status'][this.get_value(old_comment, field)]);
+      return new Promise((resolve, reject) => {
+        let value = this.get_value(old_comment, field);
+        if (value == undefined) {
+          return reject(`Error getting the status value for ${field.source}`);
+        }
+        return resolve(field['status'][value]);
       });
 
     case 'Parent':  
@@ -75,8 +79,12 @@ class Sponge {
       });
 
     case 'Metadata':
-      return new Promise((resolve) => {
-        return resolve(this.get_metadata(old_comment, field));
+      return new Promise((resolve, reject) => {
+        let value = this.get_metadata(old_comment, field);
+        if (value == undefined) {
+          return reject('Error on getting metadata field.');
+        }
+        return resolve(value);
       });
     default:
       return new Promise((reject) => {
@@ -100,22 +108,38 @@ class Sponge {
   async transform_user(old_user, fields, source_name) {
     let u = {}
     for (let f in fields) {
-      u[f] = await this.transform_field(old_user, fields[f], source_name);
+      u[f] = await this.transform_field(old_user, fields[f], source_name)
+      .catch((error) => {
+        console.log(`error ${error}`);
+      });
     }
+
+    // Provider set the profile that will be disqus for all this
     u['provider'] = 'Disqus';
+    let username = u.displayName.replace(/ /g, '_').replace(/[^a-zA-Z_]/g, '');
+    u['id'] = `${username}@fromdisqus.com`;
 
-    const user = this.talk.createUser(u);
-
-    return user.id;
+    // {id, provider, displayName} in the user
+    return this.talk.createUser(u)
+    .then((user) => {
+      if (user != undefined) {
+        return user.id;
+      }
+      console.log('Error as returned undefined user.')
+    })
+    .catch((error) => {
+      console.log('Error ', error);
+    });
   }
 
   async create_asset(old_asset, fields, source_name) {
-    let a = {}
+    let promises = [];
+    let a = {};
     for (let f in fields) {
       a[f] = await this.transform_field(old_asset, fields[f], source_name);
     }
 
-    let asset = this.talk.createAsset(a);
+    let asset = await this.talk.createAsset(a);
     return asset.id;
   }
 
@@ -131,9 +155,6 @@ class Sponge {
         console.log('Error finding the parent comment ', error);
         return null;
       });
-      
-      // let parent = this.talk.createComment(this.get_value(old_comment, field));
-      // return parent.id
   }
 
 }

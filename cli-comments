@@ -9,13 +9,14 @@ const program = require('./commander');
 const Strategy = require('./services/strategy');
 const Sponge = require('./services/sponge');
 
-const TalkService = require('./services/talk-service');
 const mongoose = require('./services/talk/services/mongoose');
 
 const Disqus = require('./services/disqus');
 
 const util = require('./util');
+
 const fs = require('fs');
+const async = require('async');
 
 // Register the shutdown criteria.
 util.onshutdown([
@@ -25,7 +26,7 @@ util.onshutdown([
 /**
 * Import comments into the database.
 */
-function importComments(file) {
+async function importComments(file) {
  
   // Get strategy the strategy use.
   const strategy = new Strategy(file);
@@ -35,26 +36,33 @@ function importComments(file) {
   
   console.info('Importing comments for %s.', strategy.data.name);
 
-  // // Connect to talk.
-  const talk = new TalkService();
-
   // Connect to disqus.  
   const disqus = new Disqus(strategy.data.service);
+
+  let resolve = Promise.resolve();
+
   disqus.get_comments(strategy.data.service.forum)
   .then(posts => {
     for (i in posts.response) {
       post = posts.response[i]
 
-      sponge.translate(post, 'comments')
-      .then((comment) => {
-        console.log('Success', comment.id);
-        util.shutdown();
+      resolve = resolve.then(() => {
+        return sponge.translate(post, 'comments')
       })
       .catch((error) => {
-        console.log('Error translating or importing a comment. ', error);
-        util.shutdown(1);
+        console.log(`Error on translating post. ${error}`)
       });
     }
+
+    resolve.then(() => {
+      console.log(`Success importing ${posts.response.length} comments for forum ${strategy.data.service.forum}.`);
+      util.shutdown();
+    })
+    .catch((error) => {
+      console.log('Error translating or importing comments. ', error);
+      util.shutdown(1);
+    });
+
   })
   .catch(error => {
     console.log('Error getting comments from Disqus. ', error);
