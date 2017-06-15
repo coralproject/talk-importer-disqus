@@ -4,10 +4,11 @@ Importer of comments from "legacy systems" into our brilliant Coral Talk system 
 
 # DISQUS 
 
+The example `strategy_disqus_example.json` has a mapping file for bringing Disqus posts into Talk comments. It also adds users of the comments and the thread (asset) that the comments are on.
+
 ## How to structure a request in Disqus
 
 https://disqus.com/api/{version}/{resource}.{output_type}
-https://disqus.com/api/3.0/forums/listPosts.json?forum=disqus
 
 ### Importing comments
 
@@ -42,12 +43,6 @@ Return list of posts ordered by the date created.
 
 Documentation: https://disqus.com/api/docs/posts/list/
 
-author_id
-asset_id
-body
-status
-tags
-metadata
 
 ##### users
 
@@ -55,7 +50,7 @@ metadata
   username: the unique username associated with the account.
   name: the display name of the user.
   email: hashed email of the user
-  jonedAt: the date/time that the user created the account
+  joinedAt: the date/time that the user created the account
   about: the bio
 ```
 
@@ -68,3 +63,17 @@ Documentation:
 * Concepts in Disqus data model: https://help.disqus.com/customer/portal/articles/1131785
 * Library bindings for Disqus in Node: https://www.npmjs.com/package/disqus-node
 * API documentation: https://disqus.com/api/docs/
+
+## License
+
+    Copyright 2017 Mozilla Foundation
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+    See the License for the specific language governing permissions and limitations under the License.
