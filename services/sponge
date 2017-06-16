@@ -26,9 +26,10 @@ class Sponge {
       }
 
       return this.talk.createComment(c).then((comment) => {
+
         // To Do: once is created it needs to add any flags to the actions
         // Look if it is flagged
-        if (comment.metadata.isFlagged) {
+        if (comment != undefined && comment.metadata.isFlagged) {
           let action = {};
 
           action.action_type = 'FLAG';
@@ -40,6 +41,10 @@ class Sponge {
 
           this.talk.createAction(action);
         }
+        return comment;
+      })
+      .catch((error) => {
+        console.log(`There was an error creating the comment ${error}.`)
       });
   }
 
@@ -86,10 +91,7 @@ class Sponge {
 
     case 'Parent':  
       let parent_id = this.create_parent(old_comment, field);
-      return new Promise((resolve, reject) => {
-        if (parent_id == undefined) {
-          return reject('Error on getting parent_id field.');
-        }
+      return new Promise((resolve) => {
         return resolve(parent_id);
       });
 
@@ -158,18 +160,34 @@ class Sponge {
     return asset.id;
   }
 
-  create_parent(old_comment, field) {
-      return this.talk.findComment(this.get_value(old_comment,field.search_field))
-      .then((comment) => {
-        if (comment == null) {
-          return null;
-        } 
-        return comment.id;
-      })
-      .catch((error) => {
-        console.log('Error finding the parent comment ', error);
+  async create_parent(old_comment, field) {
+
+    // I need to get that source parent id  
+    let source_parent_id = this.get_value(old_comment,field);
+
+    if (source_parent_id == undefined) {
+      return null;
+    };
+
+    //  first go look at it in talk by metadata.id
+    return this.talk.findCommentByField(field.search_id, source_parent_id)
+    .then((parent_comment) => {
+
+      // If not found then go to disqus to get the comment, create it and attach it to the parent
+      if (parent_comment == null) {
+        this.disqus.find_post(source_parent_id)
+        .then((p) => {
+          return this.translate(p.response, 'comments')
+          .then((comment) => {
+            if (comment != undefined) {
+              return comment.id;
+            }
+          });
+        });
         return null;
-      });
+      }
+      return parent_comment.id;
+    })
   }
 
 }

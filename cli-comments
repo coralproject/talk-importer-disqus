@@ -23,6 +23,10 @@ util.onshutdown([
   () => mongoose.disconnect()
 ]);
 
+function factory(service) {
+  return new Disqus(service);
+}
+
 /**
 * Import comments into the database.
 */
@@ -34,20 +38,19 @@ async function importComments(file) {
   // Get the transformation tool going.
   const sponge = new Sponge(strategy.data);
   
-  console.info('Importing comments from %s.', strategy.data.name);
+  console.info(`Importing comments from ${strategy.data.name}.`);
 
-  // Connect to disqus.  
-  const disqus = new Disqus(strategy.data.service);
+  // Connect to Source.  
+  const source = factory(strategy.data.service);
 
   let resolve = Promise.resolve();
 
-  disqus.get_comments(strategy.data.service.forum)
+  source.get_comments(strategy.data.service.forum)
   .then(posts => {
     for (let i in posts.response) {
-      post = posts.response[i]
+      let post = posts.response[i];
 
       resolve = resolve.then(() => {
-        console.log(`Translating post ${post.raw_message}`);
         return sponge.translate(post, 'comments')
       })
       .catch((error) => {
@@ -66,7 +69,7 @@ async function importComments(file) {
 
   })
   .catch(error => {
-    console.log('Error getting comments from Disqus. ', error);
+    console.log('Error getting comments from the Source. ', error);
     util.shutdown(1);
   });
 }

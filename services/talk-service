@@ -5,6 +5,8 @@ const userService = require('./talk/services/users');
 const assetService = require('./talk/services/assets');
 const actionService = require('./talk/services/actions');
 
+const commentModel = require('./talk/models/comment');
+
 class Talk {
     constructor(){
         // To Do, adding service.url to talk whitelist domains.
@@ -19,6 +21,10 @@ class Talk {
         .catch((error) => {
             console.log('Error when finding comment: ', error);
         });
+    }
+
+    findCommentByField(field, value) {
+        return commentModel.findOne({field: value});
     }
 
     createComment(comment) {

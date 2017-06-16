@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
 class Source {
-    constructor(){
+    constructor(name, service){
+        this.name_source = name;
+        this.service = service;
+    }
+
+    get_comments(asset){
     }
 }
 
