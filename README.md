@@ -64,6 +64,12 @@ Documentation:
 * Library bindings for Disqus in Node: https://www.npmjs.com/package/disqus-node
 * API documentation: https://disqus.com/api/docs/
 
+# LIVEFYRE
+
+* [Get Activity Stream Updates](https://api.livefyre.com/docs/apis/by-category/integration#operation=urn:livefyre:apis:boostrap:operations:api:v3.1:activity:method=get)
+
+* [Get Content Thread](https://api.livefyre.com/docs/apis/by-category/collection-content#operation=urn:livefyre:apis:bootstrap:operations:api:v3.0:content:thread:method=get)
+
 ## License
 
     Copyright 2017 Mozilla Foundation
