@@ -10,6 +10,8 @@ The mapping file (eg strategy_disquss_example.json) contains information on how 
 * service: credentials to connect to the source database or service to get data
 * map: the actual mapping of entities
 
+Note: Remember to add the asset url domain to the domain whitelist in Talk.
+
 # DISQUS 
 
 The example `strategy_disqus_example.json` has a mapping file for bringing Disqus posts into Talk comments. It also adds users of the comments and the thread (asset) that the comments are on.
