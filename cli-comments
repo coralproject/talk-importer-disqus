@@ -12,6 +12,7 @@ const Sponge = require('./services/sponge');
 const mongoose = require('./services/talk/services/mongoose');
 
 const Disqus = require('./services/disqus');
+const Wapo = require('./services/wapo');
 
 const util = require('./util');
 
@@ -23,8 +24,15 @@ util.onshutdown([
   () => mongoose.disconnect()
 ]);
 
-function factory(service) {
-  return new Disqus(service);
+function factory(strategy) {
+  switch(strategy.name){
+  case 'Washington Post':
+    return new Wapo(strategy.service);
+  case 'Disqus':
+    return new Disqus(strategy.service);
+  default:
+    console.log(`We do not have any driver for that mapping file ${strategy.name}.`)
+  }
 }
 
 /**
@@ -35,20 +43,21 @@ async function importComments(file) {
   // Get strategy the strategy use.
   const strategy = new Strategy(file);
 
+  // Connect to Source.  
+  const source = factory(strategy.data);
+
   // Get the transformation tool going.
-  const sponge = new Sponge(strategy.data);
+  const sponge = new Sponge(strategy.data, source);
   
   console.info(`Importing comments from ${strategy.data.name}.`);
 
-  // Connect to Source.  
-  const source = factory(strategy.data.service);
-
   let resolve = Promise.resolve();
-
+ 
   source.get_comments(strategy.data.service.forum)
   .then(posts => {
-    for (let i in posts.response) {
-      let post = posts.response[i];
+    console.log(posts);
+    for (let i in posts) {
+      let post = posts[i];
 
       resolve = resolve.then(() => {
         return sponge.translate(post, 'comments')
@@ -59,7 +68,7 @@ async function importComments(file) {
     }
 
     resolve.then(() => {
-      console.log(`Success importing ${posts.response.length} comments for forum ${strategy.data.service.forum}.`);
+      console.log(`Success importing ${posts == undefined ? 0 : posts.length} comments for ${strategy.data.name}.`);
       util.shutdown();
     })
     .catch((error) => {

@@ -2,9 +2,18 @@
 
 Importer of comments from "legacy systems" into our brilliant Coral Talk system :)
 
+# Mapping file
+
+The mapping file (eg strategy_disquss_example.json) contains information on how to map the source data model into the Talk one. 
+
+* name: the name of the strategy to do the mapping
+* service: credentials to connect to the source database or service to get data
+* map: the actual mapping of entities
+
 # DISQUS 
 
 The example `strategy_disqus_example.json` has a mapping file for bringing Disqus posts into Talk comments. It also adds users of the comments and the thread (asset) that the comments are on.
+
 
 ## How to structure a request in Disqus
 

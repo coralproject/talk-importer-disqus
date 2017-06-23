@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 class Source {
-    constructor(name, service){
-        this.name_source = name;
+    constructor(service){
         this.service = service;
     }
 
-    get_comments(asset){
-    }
+    find_comment(commentid) {}
+    get_comments(asset){}
+    get_asset(asset_id){}
 }
 
 module.exports = Source;

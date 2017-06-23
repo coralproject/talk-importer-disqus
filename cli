@@ -8,7 +8,6 @@
 const program = require('./commander');
 
 program
-  .command('assets', 'import assets')
   .command('comments', 'import comments')
   .parse(process.argv);
 

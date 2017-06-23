@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 
-const Disqus = require('./disqus');
 const TalkService = require('./talk-service');
 
 class Sponge {
 
-  constructor(strategy) {
+  constructor(strategy, source) {
     this.strategy = strategy;
-    this.disqus = new Disqus(strategy.service);
+    this.source = source;
     this.talk = new TalkService(strategy.service.url);
   }
 
@@ -37,7 +36,7 @@ class Sponge {
           action.item_id = comment.id;
           action.user_id = null;
           action.group_id = 'Other';
-          action.metadata = { 'message': 'Disqus'};
+          action.metadata = { 'message': this.strategy.name};
 
           this.talk.createAction(action);
         }
@@ -70,8 +69,8 @@ class Sponge {
 
     case 'FindOrCreateAsset':
     
-      let old_asset = await this.disqus.get_asset(old_comment[field.source]);
-      let asset_id = await this.create_asset(old_asset.response, field.map.fields, source_name);
+      let old_asset = await this.source.get_asset(old_comment[field.source]);
+      let asset_id = await this.create_asset(old_asset, field.map.fields, source_name);
 
       return new Promise((resolve, reject) => {
         if (asset_id == undefined) {
@@ -131,10 +130,10 @@ class Sponge {
       });
     }
 
-    // Provider set the profile that will be disqus for all this
-    u['provider'] = 'Disqus';
+    // Provider set the profile that will be external source for all this
+    u['provider'] = this.strategy.name;
     let username = u.displayName.replace(/ /g, '_').replace(/[^a-zA-Z_]/g, '');
-    u['id'] = `${username}@fromdisqus.com`;
+    u['id'] = `${username}@fromexternalsource.com`;
 
     // {id, provider, displayName} in the user
     return this.talk.createUser(u)
@@ -173,11 +172,11 @@ class Sponge {
     return this.talk.findCommentByField(field.search_id, source_parent_id)
     .then((parent_comment) => {
 
-      // If not found then go to disqus to get the comment, create it and attach it to the parent
+      // If not found then go to the external source to get the comment, create it and attach it to the parent
       if (parent_comment == null) {
-        this.disqus.find_post(source_parent_id)
+        this.source.find_comment(source_parent_id)
         .then((p) => {
-          return this.translate(p.response, 'comments')
+          return this.translate(p, 'comments')
           .then((comment) => {
             if (comment != undefined) {
               return comment.id;

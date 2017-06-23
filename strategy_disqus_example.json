@@ -1,8 +1,5 @@
 {
   "name": "Disqus",
-  "talk": {
-    "url": "http://127.0.0.1:3000/api/v1/"
-    },
   "service": {
     "url": "https://source.opennews.org",
     "api_secret": "",
