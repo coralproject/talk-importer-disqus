@@ -55,7 +55,6 @@ async function importComments(file) {
   
   source.get_comments(strategy.data.service.forum)
   .then(posts => {
-    console.log('DEBUG IS POSTS UNDEFIEND? ', posts);
     for (let i in posts) {
       let post = posts[i];
       resolve = resolve.then(() => {
