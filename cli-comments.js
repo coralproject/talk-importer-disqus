@@ -39,26 +39,24 @@ function factory(strategy) {
 * Import comments into the database.
 */
 async function importComments(file) {
- 
+  
   // Get strategy the strategy use.
   const strategy = new Strategy(file);
-
+  
   // Connect to Source.  
   const source = factory(strategy.data);
-
+  
   // Get the transformation tool going.
   const sponge = new Sponge(strategy.data, source);
   
   console.info(`Importing comments from ${strategy.data.name}.`);
 
   let resolve = Promise.resolve();
- 
+  
   source.get_comments(strategy.data.service.forum)
   .then(posts => {
-    console.log(posts);
     for (let i in posts) {
       let post = posts[i];
-
       resolve = resolve.then(() => {
         return sponge.translate(post, 'comments')
       })
