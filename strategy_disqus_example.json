@@ -107,7 +107,7 @@
             "relation": "AddFlag",
             "object": "action",
             "type": "Boolean"
-          }
+          },
           "author_id": {
             "source":"author",
             "relation":"FindOrCreateUser",

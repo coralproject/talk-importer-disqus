@@ -10,9 +10,9 @@ class Sponge {
     this.talk = new TalkService(strategy.service.url);
   }
 
-  async translate(post, model) {
+  async translate(post, entity) {
       let c = {};
-      let fields = this.strategy.map.entities[model].fields;
+      let fields = this.strategy.map.entities[entity].fields;
 
       for (let field in fields) {
         await this.transform_field(post, fields[field], this.strategy.name)

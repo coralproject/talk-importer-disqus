@@ -9,7 +9,6 @@ const commentModel = require('./talk/models/comment');
 
 class Talk {
     constructor(){
-        // To Do, adding service.url to talk whitelist domains.
         console.log('Connecting to Talk API Client.');
     }
 
@@ -38,6 +37,7 @@ class Talk {
     }
 
     // User needs {id, provider, displayName}
+    // TODO: A decision needs to be made about the provider.
     createUser(user) {
 
         let id = user.id;
@@ -47,6 +47,7 @@ class Talk {
         return userService.findOrCreateExternalUser({id, provider, displayName});
     }
 
+    // TODO: We need to automatically add the asset.url domain to the domain whitelist in Talk.
     createAsset(asset) {
         return assetService.findOrCreateByUrl(asset.url)
         .then((a) => {
