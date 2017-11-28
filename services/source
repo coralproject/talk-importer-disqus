@@ -8,6 +8,7 @@ class Source {
     find_comment(commentid) {}
     get_comments(asset){}
     get_asset(asset_id){}
+  hasMore(){}
 }
 
 module.exports = Source;

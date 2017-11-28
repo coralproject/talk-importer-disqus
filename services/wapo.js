@@ -6,7 +6,7 @@ const Source = require('./source');
 class Wapo extends Source {
     constructor(service) {
         super(service);
-        
+
         this.client = mongodb.MongoClient
         this.connection = service.connection;
     }
@@ -61,6 +61,11 @@ class Wapo extends Source {
             });
         });
     }
+
+  hasMore() {
+      // @todo Implement pagination support
+    return false;
+  }
 }
 
 module.exports = Wapo;
