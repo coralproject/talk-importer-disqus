@@ -45,27 +45,15 @@ class Talk {
         });
     }
 
-  async createUser(user) {
-    const {id, provider, displayName} = user;
-    try {
-      return await userService.findOrCreateExternalUser({
-        id,
-        provider,
-        displayName
-      });
-    } catch (err) {
+  // User needs {id, provider, displayName}
+  // TODO: A decision needs to be made about the provider.
+  createUser(user) {
 
-      // Fallback to username lookup.
-      const user = await userService.search(
-        userService.castUsername(displayName)
-      );
+    let id = user.id;
+    let provider = user.provider;
+    let displayName = user.displayName;
 
-      if (!user) {
-        throw err;
-      }
-
-      return user;
-    }
+    return userService.findOrCreateExternalUser({id, provider, displayName});
   }
 
   // @todo Update readme with info on whitelisting domain before migrating
