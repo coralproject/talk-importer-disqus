@@ -63,7 +63,7 @@ class Wapo extends Source {
     }
 
   hasMore() {
-      // @todo Implement pagination support
+    // @todo Implement pagination support
     return false;
   }
 }

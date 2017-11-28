@@ -8,8 +8,6 @@ class Disqus extends Source {
   constructor(service) {
     super();
 
-    this.assetCache = {};
-
     // Connect to disqus.
     this.client = new neo_disqus({
       access_token: service.access_token,
@@ -18,6 +16,7 @@ class Disqus extends Source {
     });
 
     this.next = null;
+    this.assetCache = {};
 
     this.get_comments = this.get_comments.bind(this);
     this.hasMore = this.hasMore.bind(this);
@@ -41,7 +40,7 @@ class Disqus extends Source {
 
     return this.client
       .get('forums/listPosts', params)
-      .then(({ response, cursor }) => {
+      .then(({response, cursor}) => {
         this.next = cursor.hasNext && cursor.next || null;
         return response;
       });
