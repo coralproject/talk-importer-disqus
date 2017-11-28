@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const TalkService = require('./talk-service');
+const {userService} = require('./talkServices');
 
 class Sponge {
 
@@ -131,9 +132,10 @@ class Sponge {
     }
 
     // @todo support strategy option of legacy id
+    // @todo user castUsername
     // Provider set the profile that will be external source for all this
     u['provider'] = this.strategy.name;
-    let username = u.displayName.replace(/ /g, '_').replace(/[^a-zA-Z_]/g, '');
+    let username = userService.castUserName(u.displayName);
     u['id'] = `${username}@fromexternalsource.com`;
 
     // {id, provider, displayName} in the user

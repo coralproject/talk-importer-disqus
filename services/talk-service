@@ -1,20 +1,12 @@
 #!/usr/bin/env node
 
-// @todo better comment
-// Imports within Coral Talk assume CWD of Talk root.
-const path = require('path');
-const cwd = process.cwd();
-process.chdir(path.resolve(`${__dirname}/talk`));
-
-const commentService = require('./talk/services/comments');
-const userService = require('./talk/services/users');
-const assetService = require('./talk/services/assets');
-const actionService = require('./talk/services/actions');
-
-// Return CWD to original value.
-process.chdir(path.resolve(cwd));
-
-const commentModel = require('./talk/models/comment');
+const {
+  commentService,
+  userService,
+  assetService,
+  actionService,
+  commentModel,
+} = require('./talkServices');
 
 class Talk {
     constructor(){
@@ -36,6 +28,7 @@ class Talk {
     }
 
     createComment(comment) {
+        // @todo, we could try to find the comment first
         return commentService.publicCreate(comment)
         .then((c) => {
             return c;
@@ -57,6 +50,8 @@ class Talk {
   }
 
   // @todo Update readme with info on whitelisting domain before migrating
+  // @todo Update readme to make sure displayname mapping is unique
+  // @todo Update readme to inform that comments will be duplicated
   createAsset(asset) {
     return assetService.findOrCreateByUrl(asset.url)
       .then((a) => {
