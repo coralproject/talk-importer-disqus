@@ -1,9 +1,18 @@
 #!/usr/bin/env node
 
+// @todo better comment
+// Imports within Coral Talk assume CWD of Talk root.
+const path = require('path');
+const cwd = process.cwd();
+process.chdir(path.resolve(`${__dirname}/talk`));
+
 const commentService = require('./talk/services/comments');
 const userService = require('./talk/services/users');
 const assetService = require('./talk/services/assets');
 const actionService = require('./talk/services/actions');
+
+// Return CWD to original value.
+process.chdir(path.resolve(cwd));
 
 const commentModel = require('./talk/models/comment');
 
@@ -36,27 +45,42 @@ class Talk {
         });
     }
 
-    // User needs {id, provider, displayName}
-    // TODO: A decision needs to be made about the provider.
-    createUser(user) {
+  async createUser(user) {
+    const {id, provider, displayName} = user;
+    try {
+      return await userService.findOrCreateExternalUser({
+        id,
+        provider,
+        displayName
+      });
+    } catch (err) {
 
-        let id = user.id;
-        let provider = user.provider;
-        let displayName = user.displayName;
+      // Fallback to username lookup.
+      const user = await userService.search(
+        userService.castUsername(displayName)
+      );
 
-        return userService.findOrCreateExternalUser({id, provider, displayName});
+      if (!user) {
+        throw err;
+      }
+
+      return user;
     }
+  }
 
-    // TODO: We need to automatically add the asset.url domain to the domain whitelist in Talk.
-    createAsset(asset) {
-        return assetService.findOrCreateByUrl(asset.url)
-        .then((a) => {
-            return a;
-        })
-        .catch((error) => {
-            console.log('Error when creating asset: ', asset.url, error);
-        });
-    }
+  // @todo Update readme with info on whitelisting domain before migrating
+  createAsset(asset) {
+    return assetService.findOrCreateByUrl(asset.url)
+      .then((a) => {
+
+        // Assign the remaining transformed asset properties.
+        a = Object.assign(a, asset);
+        return a.save();
+      })
+      .catch((error) => {
+        console.error('Error when creating asset: ', asset.url, error); // eslint-disable-line no-console
+      });
+  }
 
     createAction(action) {
         return actionService.insertUserAction(action)
