@@ -123,32 +123,33 @@ class Sponge {
   }
 
   async transform_user(old_user, fields, source_name) {
-    let u = {}
-    for (let f in fields) {
-      u[f] = await this.transform_field(old_user, fields[f], source_name)
-      .catch((error) => {
-        console.log(`error ${error}`);
-      });
-    }
-
-    // @todo support strategy option of legacy id
-    // @todo user castUsername
-    // Provider set the profile that will be external source for all this
-    u['provider'] = this.strategy.name;
-    let username = userService.castUserName(u.displayName);
-    u['id'] = `${username}@fromexternalsource.com`;
-
-    // {id, provider, displayName} in the user
-    return this.talk.createUser(u)
-    .then((user) => {
-      if (user != undefined) {
-        return user.id;
-      }
-      console.log('Error as returned undefined user.')
-    })
-    .catch((error) => {
-      console.log('Error ', error);
+    let userData = {};
+    Object.keys(fields).forEach(async (field) => {
+      userData[field] = await this.transform_field(old_user, field, source_name);
     });
+
+    const {name: providerName, migration_id: migrationId} = this.strategy;
+    let username = userService.castUserName(userData.displayName);
+
+    // If a migration_id was defined in the strategy file append it to the
+    // username to ensure that migrated usernames don't collide with new or
+    // existing usernames.
+    if (migrationId) {
+      username = username + migrationId;
+    }
+    userData.provider = providerName;
+    userData.id = username;
+
+    return this.talk.createUser(userData)
+      .then((user) => {
+        if (user !== undefined) {
+          return user.id;
+        }
+        console.log('Error as returned undefined user.');
+      })
+      .catch((error) => {
+        console.log('Error ', error);
+      });
   }
 
   async create_asset(old_asset, fields, source_name) {

@@ -40,13 +40,17 @@ class Talk {
 
   // User needs {id, provider, displayName}
   // TODO: A decision needs to be made about the provider.
-  createUser(user) {
+  async createUser(userData) {
+    const {id, provider, displayName} = userData;
+    try {
+      const user = await userService.findOrCreateExternalUser({id, provider, displayName});
 
-    let id = user.id;
-    let provider = user.provider;
-    let displayName = user.displayName;
-
-    return userService.findOrCreateExternalUser({id, provider, displayName});
+      // Save transformed user metadata.
+      user.metadata = userData.metadata;
+      return user.save();
+    } catch (error) {
+      console.error('Error when creating user: A duplicate username may have been encountered.', error);
+    }
   }
 
   // @todo Update readme with info on whitelisting domain before migrating
