@@ -61,7 +61,6 @@ class Disqus extends Source {
   }
 
   hasMore() {
-    return false;
     return !!this.next;
   }
 }
