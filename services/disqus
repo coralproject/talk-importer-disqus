@@ -32,7 +32,7 @@ class Disqus extends Source {
   }
 
   get_comments(forum) {
-    const params = {forum: forum, limit: 1};
+    const params = {forum: forum, limit: 100};
 
     if (this.hasMore()) {
       params.cursor = this.next;

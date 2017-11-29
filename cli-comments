@@ -52,7 +52,16 @@ async function importComments(file) {
   console.info(`Importing comments from ${strategy.data.name}.`);
 
   do {
-    const comments = await source.get_comments(strategy.data.service.forum);
+    let comments = [];
+
+    try {
+      comments = await source.get_comments(strategy.data.service.forum);
+    } catch (error) {
+      console.log('Error translating or importing comments. ', error);
+      util.shutdown(1);
+      return;
+    }
+
     let numTranslated = 0;
 
     comments.forEach((comment) => {
@@ -67,6 +76,8 @@ async function importComments(file) {
     console.log(`Success importing ${numTranslated} comments for ${strategy.data.name}.`); // eslint-disable-line no-console
 
   } while (source.hasMore());
+
+  util.shutdown();
 }
 
 //==============================================================================

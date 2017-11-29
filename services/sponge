@@ -143,6 +143,7 @@ class Sponge {
     // existing usernames.
     if (migrationId) {
       username = username + migrationId;
+      userData.displayName = username;
     }
     userData.provider = providerName;
     userData.id = username;
