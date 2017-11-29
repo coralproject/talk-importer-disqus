@@ -59,6 +59,7 @@ class Talk {
   // @todo Update readme with info on whitelisting domain before migrating
   // @todo Update readme to make sure displayname mapping is unique
   // @todo Update readme to inform that comments will be duplicated
+  // @todo Update readme on how to run this thing
   createAsset(asset) {
     return assetService.findOrCreateByUrl(asset.url)
       .then((a) => {

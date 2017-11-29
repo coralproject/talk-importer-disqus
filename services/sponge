@@ -124,12 +124,19 @@ class Sponge {
 
   async transform_user(old_user, fields, source_name) {
     let userData = {};
-    Object.keys(fields).forEach(async (field) => {
-      userData[field] = await this.transform_field(old_user, field, source_name);
-    });
+
+    for (let field in fields) {
+      if (fields.hasOwnProperty(field)) {
+        try {
+          userData[field] = await this.transform_field(old_user, fields[field], source_name);
+        } catch (error) {
+          console.log(`error ${error}`);
+        }
+      }
+    }
 
     const {name: providerName, migration_id: migrationId} = this.strategy;
-    let username = userService.castUserName(userData.displayName);
+    let username = userData.displayName;
 
     // If a migration_id was defined in the strategy file append it to the
     // username to ensure that migrated usernames don't collide with new or
