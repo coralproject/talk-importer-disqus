@@ -2,7 +2,7 @@
 // the translation files required in services/i18n.js are assumed to be relative
 // to the current working directory. In order to maintain this behavior we
 // change the working directory to the Talk submodule, so requiring files
-// referenced from the Talk source don't encounter error.
+// referenced from the Talk source don't encounter an error.
 const path = require('path');
 const cwd = process.cwd();
 process.chdir(path.resolve(`${__dirname}/talk`));

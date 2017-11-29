@@ -28,7 +28,10 @@ class Talk {
     }
 
     createComment(comment) {
-        // @todo, we could try to find the comment first
+        // @todo It would be nice if we could mirror the other entities that we
+        // create by doing a findOrCreate operation. This would allow us to
+        // re run a migration if it stops part way through, otherwise we end up
+        // with duplicate comments.
         return commentService.publicCreate(comment)
         .then((c) => {
             return c;
