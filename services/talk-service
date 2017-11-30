@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
-const commentService = require('./talk/services/comments');
-const userService = require('./talk/services/users');
-const assetService = require('./talk/services/assets');
-const actionService = require('./talk/services/actions');
-
-const commentModel = require('./talk/models/comment');
+const {
+  commentService,
+  userService,
+  assetService,
+  actionService,
+  commentModel,
+} = require('./talkServices');
 
 class Talk {
     constructor(){
@@ -27,6 +28,10 @@ class Talk {
     }
 
     createComment(comment) {
+        // @todo It would be nice if we could mirror the other entities that we
+        // create by doing a findOrCreate operation. This would allow us to
+        // re run a migration if it stops part way through, otherwise we end up
+        // with duplicate comments.
         return commentService.publicCreate(comment)
         .then((c) => {
             return c;
@@ -36,27 +41,33 @@ class Talk {
         });
     }
 
-    // User needs {id, provider, displayName}
-    // TODO: A decision needs to be made about the provider.
-    createUser(user) {
+  // User needs {id, provider, displayName}
+  // TODO: A decision needs to be made about the provider.
+  async createUser(userData) {
+    const {id, provider, displayName} = userData;
+    try {
+      const user = await userService.findOrCreateExternalUser({id, provider, displayName});
 
-        let id = user.id;
-        let provider = user.provider;
-        let displayName = user.displayName;
-
-        return userService.findOrCreateExternalUser({id, provider, displayName});
+      // Save transformed user metadata.
+      user.metadata = userData.metadata;
+      return user.save();
+    } catch (error) {
+      console.error('Error when creating user: A duplicate username may have been encountered.', error);
     }
+  }
 
-    // TODO: We need to automatically add the asset.url domain to the domain whitelist in Talk.
-    createAsset(asset) {
-        return assetService.findOrCreateByUrl(asset.url)
-        .then((a) => {
-            return a;
-        })
-        .catch((error) => {
-            console.log('Error when creating asset: ', asset.url, error);
-        });
-    }
+  createAsset(asset) {
+    return assetService.findOrCreateByUrl(asset.url)
+      .then((a) => {
+
+        // Assign the remaining transformed asset properties.
+        a = Object.assign(a, asset);
+        return a.save();
+      })
+      .catch((error) => {
+        console.error('Error when creating asset: ', asset.url, error); // eslint-disable-line no-console
+      });
+  }
 
     createAction(action) {
         return actionService.insertUserAction(action)

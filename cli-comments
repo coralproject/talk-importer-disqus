@@ -39,46 +39,45 @@ function factory(strategy) {
 * Import comments into the database.
 */
 async function importComments(file) {
-  
+
   // Get strategy the strategy use.
   const strategy = new Strategy(file);
-  
-  // Connect to Source.  
+
+  // Connect to Source.
   const source = factory(strategy.data);
-  
+
   // Get the transformation tool going.
   const sponge = new Sponge(strategy.data, source);
-  
+
   console.info(`Importing comments from ${strategy.data.name}.`);
 
-  let resolve = Promise.resolve();
-  
-  source.get_comments(strategy.data.service.forum)
-  .then(posts => {
-    for (let i in posts) {
-      let post = posts[i];
-      resolve = resolve.then(() => {
-        return sponge.translate(post, 'comments')
-      })
-      .catch((error) => {
-        console.log(`Error on translating post. ${error}`)
-      });
-    }
+  do {
+    let comments = [];
 
-    resolve.then(() => {
-      console.log(`Success importing ${posts == undefined ? 0 : posts.length} comments for ${strategy.data.name}.`);
-      util.shutdown();
-    })
-    .catch((error) => {
+    try {
+      comments = await source.get_comments(strategy.data.service.forum);
+    } catch (error) {
       console.log('Error translating or importing comments. ', error);
       util.shutdown(1);
+      return;
+    }
+
+    let numTranslated = 0;
+
+    comments.forEach((comment) => {
+      try {
+        sponge.translate(comment, 'comments');
+        numTranslated += 1;
+      } catch(err) {
+        console.error(`Error on translating post. ${err}`); // eslint-disable-line no-console
+      }
     });
 
-  })
-  .catch(error => {
-    console.log('Error getting comments from the Source. ', error);
-    util.shutdown(1);
-  });
+    console.log(`Success importing ${numTranslated} comments for ${strategy.data.name}.`); // eslint-disable-line no-console
+
+  } while (source.hasMore());
+
+  util.shutdown();
 }
 
 //==============================================================================

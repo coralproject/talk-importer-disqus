@@ -2,6 +2,20 @@
 
 Importer of comments from "legacy systems" into our brilliant Coral Talk system :)
 
+# Getting Started
+## Install
+```
+$ node -v
+v8.x.x
+
+$ yarn
+$ git submodule update --init
+$ cd services/talk
+$ yarnq
+```
+## Config
+Add a `.env` file in the project root that contains the required environment variables for the Talk installation you are migrating into.
+
 # Mapping file
 
 The mapping file (eg strategy_disquss_example.json) contains information on how to map the source data model into the Talk one. 
@@ -10,11 +24,19 @@ The mapping file (eg strategy_disquss_example.json) contains information on how 
 * service: credentials to connect to the source database or service to get data
 * map: the actual mapping of entities
 
-Note: Remember to add the asset url domain to the domain whitelist in Talk.
+## Notes
+- Remember to add the asset url domain to the domain whitelist in Talk.
+- For the author displayName field mapping, it is imperative that the source value is unique, as the displayName is used to generate the username field of Talk users, which has a unique constraint.
+
+# Running Script
+```
+$ ./cli-comments import strategy_STRATEGY_NAME.json -c .env
+
+```
 
 # DISQUS 
 
-The example `strategy_disqus_example.json` has a mapping file for bringing Disqus posts into Talk comments. It also adds users of the comments and the thread (asset) that the comments are on.
+The example `strategy_disqus_example.json` has a mapping file for bringing Disqus posts into Talk comments. It also adds users of the comments and the thread (asset) that the comments are on. Name your Disqus strategy file `strategy_disqus.json`.
 
 
 ## How to structure a request in Disqus

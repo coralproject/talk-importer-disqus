@@ -8,12 +8,18 @@ class Disqus extends Source {
   constructor(service) {
     super();
 
-    // Connect to disqus.  
+    // Connect to disqus.
     this.client = new neo_disqus({
       access_token: service.access_token,
       api_key: service.api_key,
       api_secret: service.api_secret
-    })
+    });
+
+    this.next = null;
+    this.assetCache = {};
+
+    this.get_comments = this.get_comments.bind(this);
+    this.hasMore = this.hasMore.bind(this);
   }
 
   find_comment(id) {
@@ -26,21 +32,36 @@ class Disqus extends Source {
   }
 
   get_comments(forum) {
-    const params = { forum: forum , limit: 100};
-    return this.client.get("forums/listPosts", params).then((result) => {
-      return result.response;
-    });
+    const params = {forum: forum, limit: 100};
 
-    // it needs to return only the response for each post in posts.
+    if (this.hasMore()) {
+      params.cursor = this.next;
+    }
+
+    return this.client
+      .get('forums/listPosts', params)
+      .then(({response, cursor}) => {
+        this.next = cursor.hasNext && cursor.next || null;
+        return response;
+      });
   }
 
-  async get_asset(thread_id) {
-    const params = {thread: thread_id}
-    return this.client.get("threads/details", params).then((result) => {
+  get_asset(thread_id) {
+    const params = {thread: thread_id};
+
+    // Avoid requesting the same thread for every thread's post.
+    if (this.assetCache[thread_id]) {
+      return Promise.resolve(this.assetCache[thread_id]);
+    }
+
+    return this.client.get('threads/details', params).then((result) => {
+      this.assetCache[thread_id] = result.response;
       return result.response;
     });
+  }
 
-    // it needs to return asset.response
+  hasMore() {
+    return !!this.next;
   }
 }
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const TalkService = require('./talk-service');
+const {userService} = require('./talkServices');
 
 class Sponge {
 
@@ -68,7 +69,7 @@ class Sponge {
       });
 
     case 'FindOrCreateAsset':
-    
+
       let old_asset = await this.source.get_asset(old_comment[field.source]);
       let asset_id = await this.create_asset(old_asset, field.map.fields, source_name);
 
@@ -88,7 +89,7 @@ class Sponge {
         return resolve(field['status'][value]);
       });
 
-    case 'Parent':  
+    case 'Parent':
       let parent_id = this.create_parent(old_comment, field);
       return new Promise((resolve) => {
         return resolve(parent_id);
@@ -122,30 +123,41 @@ class Sponge {
   }
 
   async transform_user(old_user, fields, source_name) {
-    let u = {}
-    for (let f in fields) {
-      u[f] = await this.transform_field(old_user, fields[f], source_name)
-      .catch((error) => {
-        console.log(`error ${error}`);
-      });
+    let userData = {};
+
+    for (let field in fields) {
+      if (fields.hasOwnProperty(field)) {
+        try {
+          userData[field] = await this.transform_field(old_user, fields[field], source_name);
+        } catch (error) {
+          console.log(`error ${error}`);
+        }
+      }
     }
 
-    // Provider set the profile that will be external source for all this
-    u['provider'] = this.strategy.name;
-    let username = u.displayName.replace(/ /g, '_').replace(/[^a-zA-Z_]/g, '');
-    u['id'] = `${username}@fromexternalsource.com`;
+    const {name: providerName, migration_id: migrationId} = this.strategy;
+    let username = userData.displayName;
 
-    // {id, provider, displayName} in the user
-    return this.talk.createUser(u)
-    .then((user) => {
-      if (user != undefined) {
-        return user.id;
-      }
-      console.log('Error as returned undefined user.')
-    })
-    .catch((error) => {
-      console.log('Error ', error);
-    });
+    // If a migration_id was defined in the strategy file append it to the
+    // username to ensure that migrated usernames don't collide with new or
+    // existing usernames.
+    if (migrationId) {
+      username = username + migrationId;
+      userData.displayName = username;
+    }
+    userData.provider = providerName;
+    userData.id = username;
+
+    return this.talk.createUser(userData)
+      .then((user) => {
+        if (user !== undefined) {
+          return user.id;
+        }
+        console.log('Error as returned undefined user.');
+      })
+      .catch((error) => {
+        console.log('Error ', error);
+      });
   }
 
   async create_asset(old_asset, fields, source_name) {
@@ -161,7 +173,7 @@ class Sponge {
 
   async create_parent(old_comment, field) {
 
-    // I need to get that source parent id  
+    // I need to get that source parent id
     let source_parent_id = this.get_value(old_comment,field);
 
     if (source_parent_id == undefined) {
